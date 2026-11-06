@@ -83,6 +83,22 @@ npm run build        # 构建站点到 site/dist
 - 汇总组件清单：`skills/`、`commands/`、`agents/`、`hooks/hooks.json`、`.mcp.json`、`.lsp.json`；
 - 严格校验：条目命名、重名、目录存在性、`plugin.json` 的 `name` 与条目一致；任一失败即非零退出，CI 会中断。
 
+## 构建触发范围
+
+CI 只在与产物相关的路径变更时运行：
+
+| 变更路径 | 镜像发布 | Workers 部署 |
+| --- | --- | --- |
+| `site/**` | ✓ | ✓ |
+| `plugins/**` | ✓ | ✓ |
+| `.claude-plugin/**` | ✓ | ✓ |
+| `package.json` / `package-lock.json` | ✓ | ✓ |
+| `build/**` / `.dockerignore` | ✓ | — |
+| `deploy/cloudflare/**` | — | ✓ |
+| `README.md`、`Makefile`、`scripts/**`、`.github/**`、`deploy/docker/**` | — | — |
+
+`workflow_dispatch` 不受路径过滤影响，可随时手动触发。
+
 ## 构建与运行
 
 ### Make

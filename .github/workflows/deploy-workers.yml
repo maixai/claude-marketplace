@@ -3,6 +3,13 @@ name: Deploy Site to Cloudflare Workers
 on:
   push:
     branches: [main]
+    paths:
+      - 'site/**'
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'deploy/cloudflare/**'
   workflow_dispatch:
 
 permissions:

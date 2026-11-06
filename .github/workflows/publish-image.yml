@@ -3,6 +3,14 @@ name: Build and Publish Image
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'site/**'
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'build/**'
+      - '.dockerignore'
   workflow_dispatch:
 
 permissions:
