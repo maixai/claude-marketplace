@@ -1,0 +1,16 @@
+{
+  "name": "maixai-marketplace",
+  "description": "Maixai 的 Claude Code 插件市场",
+  "owner": {
+    "name": "ZACHARY ZHAO"
+  },
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./plugins/demo-plugin",
+      "description": "演示用插件：包含一个 Skill 和一个 SubAgent，用于验证市场站点的展示与安装链路",
+      "category": "demo",
+      "tags": ["demo", "skill", "agent"]
+    }
+  ]
+}

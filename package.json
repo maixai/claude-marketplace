@@ -1,0 +1,13 @@
+{
+  "name": "claude-marketplace",
+  "private": true,
+  "workspaces": [
+    "site"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace site",
+    "build": "npm run build --workspace site",
+    "catalog": "node site/scripts/collect-plugins.ts",
+    "validate:plugins": "claude plugin validate ."
+  }
+}

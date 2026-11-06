@@ -1,0 +1,89 @@
+# claude-marketplace - Makefile
+#
+# 镜像命名规则：<image>:<ref>-<commit8>[-dirty]
+# <ref> 优先取当前 commit 的 tag，否则取分支名；可用 VERSION 覆盖。
+#
+# 需要覆盖镜像仓库时：
+#   make build-image IMAGE=harbor.example.com/maixai/claude-marketplace
+# 或：
+#   make build-image REGISTRY=harbor.example.com PROJECT=maixai
+
+# ---- 可覆盖变量 ----------------------------------------------------------
+REGISTRY    ?= ghcr.io
+PROJECT     ?= maixai
+APP         ?= claude-marketplace
+IMAGE       ?= $(if $(REGISTRY),$(REGISTRY)/$(PROJECT)/$(APP),$(APP))
+
+SITE_DIR    ?= site
+DIST_DIR    ?= $(SITE_DIR)/dist
+DOCKERFILE  ?= build/Dockerfile
+PORT        ?= 8080
+MAIN_BRANCH ?= main
+
+NODE_STAMP  ?= node_modules/.install-stamp
+
+# ---- 版本推导 ------------------------------------------------------------
+GIT_COMMIT  := $(shell git rev-parse --short=8 HEAD 2>/dev/null || echo nogit)
+GIT_TAG     := $(shell git describe --tags --exact-match 2>/dev/null)
+GIT_BRANCH  := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo local)
+GIT_DIRTY   := $(shell test -n "$$(git status --porcelain --untracked-files=no 2>/dev/null)" && echo "-dirty")
+
+ifeq ($(GIT_BRANCH),HEAD)
+GIT_BRANCH := local
+endif
+
+VERSION     ?= $(if $(GIT_TAG),$(GIT_TAG),$(if $(filter local,$(GIT_BRANCH)),local,$(GIT_BRANCH)))
+SAFE_REF    := $(shell echo "$(VERSION)" | sed 's/[^A-Za-z0-9_.-]/-/g')
+IMAGE_TAG   := $(SAFE_REF)-$(GIT_COMMIT)$(GIT_DIRTY)
+
+ifeq ($(GIT_BRANCH),$(MAIN_BRANCH))
+PUSH_LATEST ?= 1
+else
+PUSH_LATEST ?= 0
+endif
+
+.DEFAULT_GOAL := help
+.PHONY: help info install build dev build-image push-image run-image clean
+
+help: ## 显示帮助
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+
+info: ## 打印镜像名与 tag
+	@echo "IMAGE       = $(IMAGE)"
+	@echo "IMAGE_TAG   = $(IMAGE_TAG)"
+	@echo "PUSH_LATEST = $(PUSH_LATEST)"
+
+# ---- 本地构建 ------------------------------------------------------------
+$(NODE_STAMP): package.json package-lock.json $(SITE_DIR)/package.json
+	npm ci
+	@touch $(NODE_STAMP)
+
+install: $(NODE_STAMP) ## 安装依赖（npm ci）
+
+build: install ## 构建站点到 site/dist
+	npm run build
+	@echo ">> built $(DIST_DIR)/ ($$(du -sh $(DIST_DIR) | cut -f1))"
+
+run: install ## 启动 Vite 开发服务器
+	npm run dev
+
+# ---- Docker --------------------------------------------------------------
+build-image: ## 构建 Docker 镜像
+	docker build -f $(DOCKERFILE) -t $(IMAGE):$(IMAGE_TAG) .
+	@if [ "$(PUSH_LATEST)" = "1" ]; then docker tag $(IMAGE):$(IMAGE_TAG) $(IMAGE):latest; fi
+	@echo ">> image built: $(IMAGE):$(IMAGE_TAG)"
+
+push-image: build-image ## 推送镜像（主干分支同时推 latest）
+	docker push $(IMAGE):$(IMAGE_TAG)
+	@if [ "$(PUSH_LATEST)" = "1" ]; then docker push $(IMAGE):latest; fi
+	@echo ">> pushed: $(IMAGE):$(IMAGE_TAG)"
+
+run-image: build-image ## 构建并用容器启动（宿主 $(PORT) -> 容器 80）
+	docker run --rm -p $(PORT):80 --name $(APP) $(IMAGE):$(IMAGE_TAG)
+
+# ---- 清理 ----------------------------------------------------------------
+clean: ## 删除构建产物
+	rm -rf $(DIST_DIR) $(SITE_DIR)/src/generated
+	rm -f $(NODE_STAMP)
+	@echo ">> cleaned $(DIST_DIR)/, $(SITE_DIR)/src/generated/"

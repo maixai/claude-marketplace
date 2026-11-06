@@ -1,0 +1,13 @@
+# 版本控制
+.git
+.gitignore
+
+# 依赖与构建输出
+node_modules
+**/node_modules
+site/dist
+site/src/generated
+
+# 运行日志与文档
+*.log
+README.md
