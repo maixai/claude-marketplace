@@ -8,6 +8,12 @@
     "dev": "npm run dev --workspace site",
     "build": "npm run build --workspace site",
     "catalog": "node site/scripts/collect-plugins.ts",
-    "validate:plugins": "claude plugin validate ."
+    "validate:plugins": "claude plugin validate .",
+    "check:headers": "node scripts/check-headers.mjs",
+    "preview:workers": "wrangler dev --config deploy/cloudflare/wrangler.jsonc",
+    "deploy:workers": "wrangler deploy --config deploy/cloudflare/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
   }
 }

@@ -1,5 +1,7 @@
 node_modules/
 site/dist/
 site/src/generated/
+.wrangler/
+.dev.vars
 .DS_Store
 *.log

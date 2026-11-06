@@ -41,7 +41,7 @@ PUSH_LATEST ?= 0
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help info install build dev build-image push-image run-image clean
+.PHONY: help info install build run build-image push-image run-image clean preview-workers deploy-workers
 
 help: ## 显示帮助
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -65,6 +65,14 @@ build: install ## 构建站点到 site/dist
 
 run: install ## 启动 Vite 开发服务器
 	npm run dev
+
+preview-workers: install ## 以 Workers 运行时本地预览
+	npm run preview:workers
+
+deploy-workers: install ## 构建并部署到 Cloudflare Workers
+	npm run check:headers
+	npm run build
+	npm run deploy:workers
 
 # ---- Docker --------------------------------------------------------------
 build-image: ## 构建 Docker 镜像
