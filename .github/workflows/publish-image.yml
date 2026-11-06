@@ -27,14 +27,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve image name
+        id: image
+        run: |
+          if [ "${{ github.ref_name }}" = "develop" ]; then
+            echo "name=ghcr.io/${{ github.repository }}-dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=ghcr.io/${{ github.repository }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ steps.image.outputs.name }}
           tags: |
-            type=sha,prefix={{branch}}-,format=short,enable=${{ github.ref_type == 'branch' }}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short,prefix=
+            type=raw,value=latest
         env:
           DOCKER_METADATA_SHORT_SHA_LENGTH: 8
 

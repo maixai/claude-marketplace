@@ -88,11 +88,16 @@ make run-image PORT=8080  # 运行容器，访问 http://localhost:8080
 make push-image           # 推送到 GHCR（需先 docker login ghcr.io）
 ```
 
-镜像 tag 规则为 `<tag 或分支>-<commit8>[-dirty]`；主干分支额外打 `latest`。需要推送到其他仓库时覆盖 `IMAGE` 或 `REGISTRY`。
+镜像 tag 只使用 commit id：`<commit8>[-dirty]`。`develop` 分支使用独立的 `-dev` 镜像名，`main` 与 `develop` 都会额外打 `latest`。需要推送到其他仓库时覆盖 `IMAGE` 或 `REGISTRY`。
 
 ### 镜像发布
 
-push 到 `main` 或 `develop`、或手动触发时，`.github/workflows/publish-image.yml` 会构建并推送镜像到 `ghcr.io/<owner>/claude-marketplace`。`main` 分支额外推送 `latest`。
+push 到 `main` 或 `develop`、或手动触发时，`.github/workflows/publish-image.yml` 会构建并推送镜像：
+
+| 分支 | 镜像 | tag |
+| --- | --- | --- |
+| `main` | `ghcr.io/<owner>/claude-marketplace` | `<commit8>`、`latest` |
+| `develop` | `ghcr.io/<owner>/claude-marketplace-dev` | `<commit8>`、`latest` |
 
 生产环境拉取私有包前需登录：
 
