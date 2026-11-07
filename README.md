@@ -27,7 +27,7 @@ claude-marketplace/
 │   ├── src/
 │   └── package.json
 ├── build/
-│   ├── Dockerfile              # 两阶段构建：Node 构建 + nginx 托管
+│   ├── Dockerfile              # 两阶段构建：Node 26.13 + nginx 1.31.8
 │   └── nginx.conf              # 站点容器内的 nginx 配置
 ├── deploy/
 │   ├── cloudflare/wrangler.jsonc  # Workers 静态资源配置
@@ -114,6 +114,18 @@ make deploy-workers       # 构建并部署到 Cloudflare Workers
 
 镜像 tag 只使用 commit id：`<commit8>[-dirty]`。`develop` 分支使用独立的 `-dev` 镜像名，`main` 与 `develop` 都会额外打 `latest`。需要推送到其他仓库时覆盖 `IMAGE` 或 `REGISTRY`。
 
+### 构建环境
+
+所有构建都在 Debian 系容器中完成，不依赖宿主机安装 Node：
+
+| 目标 | 镜像 | 说明 |
+| --- | --- | --- |
+| Docker 构建阶段 | `node:26.13-trixie-slim` | `npm ci` + 站点构建 |
+| Docker 运行阶段 | `nginx:1.31.8-trixie` | 只包含 nginx 与 `site/dist` |
+| Workers 部署 job | `node:26.13-trixie` | 镜像自带 git，Checkout、构建与 `wrangler deploy` 都在容器内完成 |
+
+本地开发直接使用本机 Node（需 `>= 22.12`，当前按 26.13 验证）。
+
 ### 镜像发布
 
 push 到 `main` 或 `develop`、或手动触发时，`.github/workflows/publish-image.yml` 会构建并推送镜像：
@@ -134,6 +146,7 @@ echo "$GHCR_PAT" | docker login ghcr.io -u <github-username> --password-stdin
 `main` 分支的站点通过 `.github/workflows/deploy-workers.yml` 部署到 Cloudflare Workers Static Assets，同时仍发布 `main` 镜像。
 
 - 配置：`deploy/cloudflare/wrangler.jsonc`（Worker 名 `maixai-claude-marketplace`）
+- 构建：整个 job 运行在 `node:26.13-trixie` 容器内，宿主机无需安装 Node
 - 静态产物：`site/dist`
 - 路由：SPA fallback，未知路径渲染站内 404 页面（HTTP 200）
 - 响应头：`site/public/_headers` 为事实来源，`build/nginx.conf` 保持相同配置；`npm run check:headers` 在 CI 中校验两者一致
