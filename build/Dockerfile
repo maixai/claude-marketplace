@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: 构建站点
-FROM node:24-alpine AS builder
+FROM node:26.13-trixie-slim AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY site/ ./site/
 RUN npm run build
 
 # Stage 2: 运行
-FROM nginx:stable-alpine AS runtime
+FROM nginx:1.31.8-trixie AS runtime
 
 COPY build/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/site/dist /usr/share/nginx/html
