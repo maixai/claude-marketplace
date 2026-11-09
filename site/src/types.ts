@@ -25,24 +25,34 @@ export interface PluginManifest {
   userConfig?: Record<string, UserConfigField>
 }
 
-export interface SkillMeta {
+export interface ComponentMeta {
   name: string
-  title?: string
   description?: string
+  events?: string[]
+}
+
+export interface DescribedComponentMeta extends ComponentMeta {
+  description: string
 }
 
 export interface PluginComponents {
-  skills: SkillMeta[]
-  commands: string[]
-  agents: string[]
-  hooks: string[]
-  mcpServers: string[]
-  lspServers: string[]
+  skills: DescribedComponentMeta[]
+  commands: DescribedComponentMeta[]
+  agents: DescribedComponentMeta[]
+  hooks: ComponentMeta[]
+  mcpServers: ComponentMeta[]
+  lspServers: ComponentMeta[]
+}
+
+export interface InstallStep {
+  title: string
+  command: string
 }
 
 export type PluginSource = string | { source: string; [key: string]: unknown }
 
 export interface MarketplacePluginEntry {
+  updatedAt: string | null
   name: string
   source: PluginSource
   description?: string
@@ -53,6 +63,7 @@ export interface MarketplacePluginEntry {
   manifest: PluginManifest | null
   readmeHtml: string
   components: PluginComponents
+  installation: InstallStep[]
 }
 
 export interface MarketplaceCatalog {

@@ -5,6 +5,8 @@ on:
     branches: [main, develop]
     paths:
       - 'site/**'
+      - 'scripts/plugin-update-times.mjs'
+      - 'scripts/plugin-update-times.sh'
       - 'plugins/**'
       - '.claude-plugin/**'
       - 'package.json'
@@ -24,6 +26,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Collect plugin update times
+        id: plugin-updates
+        run: |
+          updates=$(bash scripts/plugin-update-times.sh)
+          printf 'json=%s\n' "$updates" >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v4
@@ -60,6 +70,8 @@ jobs:
         with:
           context: .
           file: build/Dockerfile
+          build-args: |
+            MARKETPLACE_PLUGIN_UPDATED_AT=${{ steps.plugin-updates.outputs.json }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
