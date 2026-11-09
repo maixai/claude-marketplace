@@ -265,16 +265,26 @@
 .plugin-detail .plugin-section-title > .icon { color: var(--dl-text-secondary); }
 .plugin-detail .plugin-section-title > .count { margin-inline-start: 0; }
 
-/* 组件以无框条目呈现；宽屏并列充分利用阅读列，窄屏保持自然阅读顺序。 */
-.plugin-detail .capability-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dl-space-8); margin: 0; padding: 0; list-style: none; }
-.plugin-detail .capability-entry { min-width: 0; overflow-wrap: anywhere; }
-.plugin-detail .capability-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--dl-space-2) var(--dl-space-3); }
-.plugin-detail .capability-name { font-size: var(--dl-font-size-md); font-weight: var(--dl-weight-medium); }
-.plugin-detail .capability-kind { color: var(--dl-text-tertiary); font-size: var(--dl-font-size-xs); font-weight: var(--dl-weight-normal); }
-.plugin-detail .capability-kind::before { content: '·'; margin-inline-end: var(--dl-space-2); }
-.plugin-detail .capability-description { max-width: var(--dl-measure); margin-block-start: var(--dl-space-2); color: var(--dl-text-secondary); }
-.plugin-detail .capability-events { margin-block-start: var(--dl-space-2); color: var(--dl-text-tertiary); font-size: var(--dl-font-size-sm); }
-.plugin-detail .capability-events span { font-family: var(--dl-font-mono); }
+/* 组件按类型分组：组标题带发丝线索引，模型/思考强度用 label-value 元数据呈现。 */
+.plugin-detail .component-groups { display: flex; flex-direction: column; gap: var(--dl-space-12); }
+.plugin-detail .component-group { min-width: 0; }
+.plugin-detail .component-group-heading { display: flex; align-items: center; gap: var(--dl-space-3); margin-block-end: var(--dl-space-6); }
+.plugin-detail .component-group-index { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
+.plugin-detail .component-group-title { flex: none; margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-medium); }
+.plugin-detail .component-group-rule { flex: 1 1 auto; min-width: var(--dl-space-6); height: var(--dl-border-width); background: var(--dl-border-base); }
+.plugin-detail .component-group-count { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
+.plugin-detail .component-list { display: flex; flex-direction: column; gap: var(--dl-space-8); margin: 0; padding: 0; list-style: none; }
+.plugin-detail .component-entry { min-width: 0; overflow-wrap: anywhere; }
+.plugin-detail .component-name { margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-medium); }
+.plugin-detail .component-name code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-md); color: var(--dl-text-primary); }
+.plugin-detail .component-description { max-width: var(--dl-measure); margin-block-start: var(--dl-space-2); color: var(--dl-text-secondary); }
+.plugin-detail .component-events { margin-block-start: var(--dl-space-2); color: var(--dl-text-tertiary); font-size: var(--dl-font-size-sm); }
+.plugin-detail .component-events span { font-family: var(--dl-font-mono); }
+.plugin-detail .component-model { display: flex; flex-wrap: wrap; gap: var(--dl-space-2) var(--dl-space-8); margin: var(--dl-space-3) 0 0; }
+.plugin-detail .component-model-row { display: flex; align-items: baseline; gap: var(--dl-space-2); }
+.plugin-detail .component-model dt { color: var(--dl-text-tertiary); font-size: var(--dl-font-size-xs); }
+.plugin-detail .component-model dd { margin: 0; color: var(--dl-text-secondary); font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); }
+.plugin-detail .component-model dd.component-model-unset { color: var(--dl-text-tertiary); font-family: var(--dl-font-sans); }
 
 .plugin-detail .prose { max-width: var(--dl-measure); overflow-wrap: anywhere; color: var(--dl-text-secondary); }
 .plugin-detail .prose > :first-child { margin-block-start: 0; }
@@ -300,9 +310,6 @@
 .plugin-detail .config-table th { color: var(--dl-text-secondary); font-weight: var(--dl-weight-medium); white-space: nowrap; }
 .plugin-detail .required-label { color: var(--dl-highlight); }
 
-@media (min-width: 1600px) {
-  .plugin-detail .capability-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 1023px) {
   .plugin-detail .plugin-hero { grid-template-columns: minmax(0, 1fr); }
   .plugin-detail .plugin-installation { border-inline-start: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
@@ -315,4 +322,5 @@
   .plugin-detail .plugin-title { font-size: var(--dl-font-size-xl); line-height: var(--dl-line-snug); }
   .plugin-detail .plugin-body { margin-block-start: var(--dl-space-8); }
   .plugin-detail .plugin-back { margin-block-end: var(--dl-space-4); }
+  .plugin-detail .component-groups { gap: var(--dl-space-8); }
 }

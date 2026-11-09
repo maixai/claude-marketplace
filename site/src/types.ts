@@ -29,6 +29,8 @@ export interface ComponentMeta {
   name: string
   description?: string
   events?: string[]
+  model?: string
+  effort?: string
 }
 
 export interface DescribedComponentMeta extends ComponentMeta {

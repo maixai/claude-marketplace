@@ -37,6 +37,28 @@ test('reads native descriptions from skills, nested agents and flat commands', a
   })
 })
 
+test('reads model and effort from skills, commands and agents when declared', async () => {
+  await fixture({
+    'skills/review/SKILL.md': '---\nname: review\ndescription: 审查代码。\nmodel: sonnet\neffort: high\n---\nInstructions',
+    'agents/reviewer.md': '---\ndescription: 独立复核。\nmodel: opus\n---\nInstructions',
+    'commands/check.md': '---\ndescription: 校验配置。\neffort: max\n---\nInstructions',
+  }, async (root) => {
+    const result = await collectComponents(root, 'example')
+    assert.deepEqual(result.skills, [{ name: 'review', description: '审查代码。', model: 'sonnet', effort: 'high' }])
+    assert.deepEqual(result.agents, [{ name: 'reviewer', description: '独立复核。', model: 'opus' }])
+    assert.deepEqual(result.commands, [{ name: 'check', description: '校验配置。', effort: 'max' }])
+  })
+})
+
+test('omits blank model and effort values so the UI can show them as unspecified', async () => {
+  await fixture({
+    'skills/review/SKILL.md': '---\nname: review\ndescription: 审查代码。\nmodel: "   "\neffort: ""\n---\nInstructions',
+  }, async (root) => {
+    const result = await collectComponents(root, 'example')
+    assert.deepEqual(result.skills, [{ name: 'review', description: '审查代码。' }])
+  })
+})
+
 test('supports YAML folded, literal, quoted descriptions and CRLF', () => {
   assert.equal(parseFrontmatter('---\ndescription: >-\n  First line\n  second line\n---\nBody', 'folded').description, 'First line second line')
   assert.equal(parseFrontmatter('---\r\ndescription: |-\r\n  First line\r\n  second line\r\n---\r\nBody', 'literal').description, 'First line\nsecond line')

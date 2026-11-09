@@ -51,6 +51,8 @@ interface ComponentMeta {
   name: string
   description?: string
   events?: string[]
+  model?: string
+  effort?: string
 }
 
 interface DescribedComponentMeta extends ComponentMeta {
@@ -186,9 +188,13 @@ function describedComponent(content: string, path: string, fallbackName: string,
   if (!description) {
     errors.push(`${label}: missing non-empty description; add a description to the component's YAML frontmatter`)
   }
+  const model = optionalString(data.model)?.trim()
+  const effort = optionalString(data.effort)?.trim()
   return {
     name: useDeclaredName ? optionalString(data.name)?.trim() || fallbackName : fallbackName,
     description,
+    ...(model ? { model } : {}),
+    ...(effort ? { effort } : {}),
   }
 }
 
