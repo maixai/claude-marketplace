@@ -168,7 +168,9 @@ const readmeHtml = computed(() => {
         </section>
       </section>
 
-      <PluginComponents :components="plugin.components" />
+      <aside class="plugin-sidebar" aria-label="插件组件">
+        <PluginComponents :components="plugin.components" />
+      </aside>
     </div>
   </article>
 

@@ -243,15 +243,22 @@
   .copy-toast { inset-inline: var(--dl-space-4); inset-block-start: calc(var(--market-header-height) + var(--dl-space-4)); inset-block-end: auto; max-width: none; }
 }
 
-/* 正文与组件保持无卡的阅读流，与面板形成“框内操作 / 框外阅读”的层级。 */
+/* 正文采用与概览面板同栅格的双栏：左侧阅读、右侧组件清单，窄屏堆叠。 */
 .plugin-detail .plugin-body {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(var(--plugin-install-min-width), 2fr);
+  align-items: stretch;
   min-width: 0;
-  gap: var(--plugin-section-gap);
   margin-block-start: var(--dl-space-12);
+  row-gap: var(--plugin-section-gap);
 }
-.plugin-detail .plugin-document { min-width: 0; }
+.plugin-detail .plugin-document { min-width: 0; padding-inline-end: var(--dl-space-8); }
+.plugin-detail .plugin-sidebar {
+  min-width: 0;
+  padding-inline-start: var(--dl-space-8);
+  border-inline-start: var(--dl-border-width) solid var(--dl-border-base);
+}
+.plugin-detail .plugin-sidebar .component-groups { gap: var(--dl-space-8); }
 .plugin-detail .plugin-section-title {
   display: flex;
   align-items: center;
@@ -313,6 +320,9 @@
 @media (max-width: 1023px) {
   .plugin-detail .plugin-hero { grid-template-columns: minmax(0, 1fr); }
   .plugin-detail .plugin-installation { border-inline-start: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
+  .plugin-detail .plugin-body { grid-template-columns: minmax(0, 1fr); }
+  .plugin-detail .plugin-document { padding-inline-end: 0; }
+  .plugin-detail .plugin-sidebar { padding-inline-start: 0; border-inline-start: 0; }
 }
 @media (max-width: 600px) {
   .plugin-detail { --plugin-section-gap: var(--dl-space-12); }
