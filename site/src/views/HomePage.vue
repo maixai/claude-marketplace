@@ -16,6 +16,7 @@ const UNCATEGORIZED = '未分类'
 const data: MarketplaceCatalog = catalog
 const searchQuery = ref('')
 const selectedCategories = ref<string[]>([])
+const recentOnly = ref(false)
 const categoryDropdown = ref<HTMLDetailsElement | null>(null)
 const recentUpdateCount = data.plugins.filter((plugin) => isRecentlyUpdated(plugin.updatedAt)).length
 
@@ -28,7 +29,9 @@ function categoryName(plugin: MarketplacePluginEntry): string {
 }
 
 const searchTerms = computed(() => normalize(searchQuery.value).split(/\s+/).filter(Boolean))
-const hasActiveFilters = computed(() => searchTerms.value.length > 0 || selectedCategories.value.length > 0)
+const hasActiveFilters = computed(
+  () => searchTerms.value.length > 0 || selectedCategories.value.length > 0 || recentOnly.value,
+)
 
 const searchedPlugins = computed(() => {
   if (searchTerms.value.length === 0) return data.plugins
@@ -49,9 +52,16 @@ const searchedPlugins = computed(() => {
   })
 })
 
+// 最近更新是全局筛选条件，与搜索、分类一样先作用于分类计数，再参与最终过滤。
+const recentMatchedPlugins = computed(() =>
+  recentOnly.value
+    ? searchedPlugins.value.filter((plugin) => isRecentlyUpdated(plugin.updatedAt))
+    : searchedPlugins.value,
+)
+
 const categories = computed<CategoryOption[]>(() => {
   const counts = new Map<string, number>()
-  for (const plugin of searchedPlugins.value) {
+  for (const plugin of recentMatchedPlugins.value) {
     const name = categoryName(plugin)
     counts.set(name, (counts.get(name) ?? 0) + 1)
   }
@@ -62,14 +72,24 @@ const categories = computed<CategoryOption[]>(() => {
 })
 
 const filteredPlugins = computed(() => {
-  if (selectedCategories.value.length === 0) return searchedPlugins.value
+  if (selectedCategories.value.length === 0) return recentMatchedPlugins.value
 
   const selected = new Set(selectedCategories.value)
-  return searchedPlugins.value.filter((plugin) => selected.has(categoryName(plugin)))
+  return recentMatchedPlugins.value.filter((plugin) => selected.has(categoryName(plugin)))
 })
 
 function clearSearch(): void {
   searchQuery.value = ''
+}
+
+function toggleRecentOnly(): void {
+  recentOnly.value = !recentOnly.value
+}
+
+function toggleCategory(category: string): void {
+  selectedCategories.value = selectedCategories.value.includes(category)
+    ? selectedCategories.value.filter((selected) => selected !== category)
+    : [...selectedCategories.value, category]
 }
 
 function removeCategory(category: string): void {
@@ -83,6 +103,7 @@ function clearCategories(): void {
 function resetFilters(): void {
   clearSearch()
   clearCategories()
+  recentOnly.value = false
 }
 
 function closeCategoryDropdown(): void {
@@ -171,10 +192,20 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
           <p class="results-count" role="status" aria-live="polite" aria-atomic="true">
             {{ hasActiveFilters ? `找到 ${filteredPlugins.length} 个插件` : `全部插件 · ${filteredPlugins.length}` }}
           </p>
-          <span class="recent-summary" :class="{ 'is-empty': recentUpdateCount === 0 }" :aria-label="`最近 7 天更新 ${recentUpdateCount} 个插件`" title="最近 7 天内有更新的插件数量">
+          <button
+            class="recent-summary"
+            :class="{ 'is-empty': recentUpdateCount === 0, 'is-active': recentOnly }"
+            type="button"
+            :aria-pressed="recentOnly"
+            :disabled="recentUpdateCount === 0"
+            :title="recentUpdateCount === 0
+              ? '最近 7 天没有更新'
+              : recentOnly ? '显示全部插件' : '仅显示最近 7 天内更新的插件'"
+            @click="toggleRecentOnly"
+          >
             <span class="recent-summary-dot" aria-hidden="true"></span>
             最近更新 <span class="recent-summary-count">{{ recentUpdateCount }}</span>
-          </span>
+          </button>
         </div>
         <div v-if="selectedCategories.length > 0" class="active-filters">
           <span class="active-filters-label">已选</span>
@@ -195,11 +226,17 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
           <svg class="icon icon--large" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4M8.5 11h5" /></svg>
         </span>
         <h2 class="empty-title">没有匹配的插件</h2>
-        <p class="empty-text">试试更短的关键词，或移除部分分类条件。</p>
-        <button class="button button--primary" type="button" @click="resetFilters">清除搜索与分类</button>
+        <p class="empty-text">试试更短的关键词，或移除部分分类与最近更新条件。</p>
+        <button class="button button--primary" type="button" @click="resetFilters">清除全部筛选</button>
       </div>
       <TransitionGroup v-else tag="ul" name="plugin-list" class="plugin-grid" appear>
-        <li v-for="plugin in filteredPlugins" :key="plugin.name"><PluginCard :plugin="plugin" /></li>
+        <li v-for="plugin in filteredPlugins" :key="plugin.name">
+          <PluginCard
+            :plugin="plugin"
+            :selected-categories="selectedCategories"
+            @toggle-category="toggleCategory"
+          />
+        </li>
       </TransitionGroup>
     </div>
 

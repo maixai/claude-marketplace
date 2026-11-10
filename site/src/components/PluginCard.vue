@@ -6,10 +6,21 @@ import PluginKeywords from './PluginKeywords.vue'
 import { isRecentlyUpdated } from '../plugin-updates'
 import type { MarketplacePluginEntry } from '../types'
 
-const props = defineProps<{ plugin: MarketplacePluginEntry }>()
+const props = withDefaults(defineProps<{
+  plugin: MarketplacePluginEntry
+  selectedCategories?: string[]
+}>(), {
+  selectedCategories: () => [],
+})
+
+const emit = defineEmits<{
+  'toggle-category': [category: string]
+}>()
+
 const displayName = computed(() => props.plugin.displayName?.trim() || props.plugin.manifest?.displayName?.trim() || '未命名插件')
 const description = computed(() => props.plugin.description ?? props.plugin.manifest?.description ?? '暂无描述。')
 const category = computed(() => props.plugin.category?.trim() || '未分类')
+const isCategorySelected = computed(() => props.selectedCategories.includes(category.value))
 const version = computed(() => props.plugin.version ?? props.plugin.manifest?.version)
 const isRecent = computed(() => isRecentlyUpdated(props.plugin.updatedAt))
 const dateFormat = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -25,9 +36,11 @@ const updatedDate = computed(() => {
 </script>
 
 <template>
-  <RouterLink class="plugin-card" :to="{ name: 'plugin', params: { name: plugin.name } }">
+  <article class="plugin-card">
     <div class="card-heading">
-      <h2 class="card-title">{{ displayName }}</h2>
+      <h2 class="card-title">
+        <RouterLink class="card-link" :to="{ name: 'plugin', params: { name: plugin.name } }">{{ displayName }}</RouterLink>
+      </h2>
       <span v-if="version" class="version">v{{ version }}</span>
       <span class="card-arrow" aria-hidden="true">
         <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
@@ -46,11 +59,19 @@ const updatedDate = computed(() => {
         <template v-else>更新时间不可用</template>
       </span>
       <span class="card-flags">
-        <span class="card-category">
+        <button
+          class="card-category"
+          :class="{ 'is-active': isCategorySelected }"
+          type="button"
+          :aria-pressed="isCategorySelected"
+          :aria-label="`按分类 ${category} 筛选`"
+          :title="isCategorySelected ? `取消 ${category} 分类筛选` : `只看 ${category} 分类`"
+          @click="emit('toggle-category', category)"
+        >
           <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h6l2 2h8v12H4V5Z" /></svg>
           {{ category }}
-        </span>
+        </button>
       </span>
     </p>
-  </RouterLink>
+  </article>
 </template>
