@@ -272,12 +272,10 @@
   inset-block-start: var(--dl-space-6);
   inset-inline-start: 0;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--dl-space-2);
   width: var(--dl-space-8);
-  min-height: calc(var(--dl-space-12) * 2);
+  min-height: calc(var(--dl-space-12) + var(--dl-space-2));
   padding: var(--dl-space-2) 0;
   border: var(--dl-border-width) solid var(--dl-border-base);
   border-radius: var(--dl-radius-md);
@@ -293,9 +291,6 @@
 .plugin-detail .components-rail:focus-visible { outline: none; box-shadow: var(--dl-focus-ring); }
 .plugin-detail .components-rail .icon { color: var(--dl-accent); transition: transform var(--dl-duration-base) var(--dl-ease-out); }
 .plugin-detail .plugin-sidebar.is-collapsed .components-rail .icon { transform: rotate(180deg); }
-.plugin-detail .components-rail-label { display: flex; flex-direction: column; align-items: center; font-size: var(--dl-font-size-xs); line-height: var(--dl-line-tight); letter-spacing: 0; }
-.plugin-detail .components-rail-count { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
-.plugin-detail .components-rail:hover .components-rail-count { color: var(--dl-accent); }
 .plugin-detail .plugin-sidebar-content { overflow: hidden; }
 .plugin-detail .components-fade-enter-active { transition: opacity var(--dl-duration-base) var(--dl-ease-out); }
 .plugin-detail .components-fade-leave-active { transition: opacity var(--dl-duration-fast) var(--dl-ease-standard); }
@@ -389,14 +384,11 @@
   .plugin-detail .components-rail {
     inset-block-start: 0;
     inset-inline-start: 50%;
-    width: auto;
+    width: var(--dl-space-8);
     min-height: var(--dl-space-8);
-    flex-direction: row;
-    gap: var(--dl-space-1);
-    padding: 0 var(--dl-space-3);
+    padding: 0;
     transform: translate(-50%, -50%);
   }
-  .plugin-detail .components-rail-label { flex-direction: row; }
   .plugin-detail .components-rail .icon { transform: rotate(-90deg); }
   .plugin-detail .plugin-sidebar.is-collapsed .components-rail .icon { transform: rotate(90deg); }
 }

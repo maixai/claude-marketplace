@@ -190,13 +190,11 @@ const readmeHtml = computed(() => {
           type="button"
           :aria-expanded="!componentsCollapsed"
           aria-controls="plugin-components-content"
-          :aria-label="componentsCollapsed ? `展开包含组件（${componentTotal} 个）` : '折叠包含组件'"
+          :aria-label="componentsCollapsed ? `展开包含组件（${componentTotal} 个）` : `折叠包含组件（${componentTotal} 个）`"
           :title="componentsCollapsed ? '展开包含组件' : '折叠包含组件'"
           @click="toggleComponents"
         >
           <svg class="icon components-rail-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
-          <span class="components-rail-label" aria-hidden="true"><span>组</span><span>件</span></span>
-          <span class="components-rail-count" aria-hidden="true">{{ componentTotal }}</span>
         </button>
         <Transition name="components-fade">
           <div v-show="!componentsCollapsed" id="plugin-components-content" class="plugin-sidebar-content">
