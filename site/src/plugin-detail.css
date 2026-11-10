@@ -1,7 +1,7 @@
 /* 插件详情：概览与安装同处一块面板，用发丝线分栏；正文用标题层级与留白组织。 */
 .plugin-detail {
   --plugin-install-min-width: 360px;
-  --plugin-reading-gap: var(--dl-space-12);
+  --plugin-section-gap: calc(var(--dl-space-12) + var(--dl-space-4));
   --copy-beam-duration: calc(var(--dl-duration-fast) * 5);
   --copy-shake-duration: calc(var(--dl-duration-fast) * 2.5);
   width: 100%;
@@ -248,7 +248,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: var(--plugin-reading-gap);
+  gap: var(--plugin-section-gap);
   margin-block-start: var(--dl-space-12);
 }
 .plugin-detail .plugin-document { min-width: 0; }
@@ -270,8 +270,8 @@
 .plugin-detail .component-group { min-width: 0; }
 .plugin-detail .component-group-heading { display: flex; align-items: center; gap: var(--dl-space-3); margin-block-end: var(--dl-space-6); }
 .plugin-detail .component-group-index { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
-.plugin-detail .component-group-title { flex: none; margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-medium); }
-.plugin-detail .component-group-rule { flex: 1 1 auto; min-width: var(--dl-space-6); height: var(--dl-border-width); background: var(--dl-border-base); }
+.plugin-detail .component-group-title { flex: none; margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-strong); }
+.plugin-detail .component-group-rule { flex: none; width: var(--dl-space-12); height: var(--dl-border-width); background: var(--dl-border-base); }
 .plugin-detail .component-group-count { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
 .plugin-detail .component-list { display: flex; flex-direction: column; gap: var(--dl-space-8); margin: 0; padding: 0; list-style: none; }
 .plugin-detail .component-entry { min-width: 0; overflow-wrap: anywhere; }
@@ -315,7 +315,7 @@
   .plugin-detail .plugin-installation { border-inline-start: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
 }
 @media (max-width: 600px) {
-  .plugin-detail { --plugin-reading-gap: var(--dl-space-8); }
+  .plugin-detail { --plugin-section-gap: var(--dl-space-12); }
   .plugin-detail .plugin-identity, .plugin-detail .plugin-installation { padding: var(--dl-space-4); }
   .plugin-detail .plugin-meta { margin-block-end: var(--dl-space-4); }
   .plugin-detail .plugin-attribution { margin-block-start: var(--dl-space-4); }
