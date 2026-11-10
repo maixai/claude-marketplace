@@ -1,10 +1,29 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+
+type PageTransitionName = 'page-forward' | 'page-back' | 'page-fade'
 
 const repository = 'maixai/claude-marketplace'
 const route = useRoute()
+const router = useRouter()
 const main = ref<HTMLElement | null>(null)
+const transitionName = ref<PageTransitionName>('page-fade')
+
+function routeDepth(path: string): number {
+  return path.startsWith('/plugins/') ? 1 : 0
+}
+
+// 在路由确认前确定方向，RouterView 才能使用对应的进入 / 退出曲线。
+router.beforeEach((to, from) => {
+  const toDepth = routeDepth(to.path)
+  const fromDepth = routeDepth(from.path)
+  transitionName.value = toDepth > fromDepth
+    ? 'page-forward'
+    : toDepth < fromDepth
+      ? 'page-back'
+      : 'page-fade'
+})
 
 // 路由切换后将键盘焦点交给新页面，避免焦点留在已移除的卡片上。
 watch(() => route.path, () => main.value?.focus(), { flush: 'post' })
@@ -38,7 +57,13 @@ watch(() => route.path, () => main.value?.focus(), { flush: 'post' })
     </header>
 
     <main id="main" ref="main" class="container main-content" tabindex="-1">
-      <RouterView />
+      <RouterView v-slot="{ Component, route: currentRoute }">
+        <Transition :name="transitionName" mode="out-in">
+          <div :key="currentRoute.path" class="route-view">
+            <component :is="Component" />
+          </div>
+        </Transition>
+      </RouterView>
     </main>
   </div>
 </template>

@@ -296,6 +296,22 @@ code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-sm); }
 .not-found .eyebrow, .not-found .lead { margin: 0; }
 .not-found .button { margin-block-start: var(--dl-space-3); }
 
+/* 路由切换：方向感知的轻量位移 + 淡入淡出，只动合成层，不触发布局。 */
+.route-view { min-width: 0; }
+.page-forward-enter-active, .page-forward-leave-active,
+.page-back-enter-active, .page-back-leave-active,
+.page-fade-enter-active, .page-fade-leave-active {
+  transition-property: opacity, transform;
+  transition-timing-function: var(--dl-ease-out);
+}
+.page-forward-enter-active, .page-back-enter-active, .page-fade-enter-active { transition-duration: var(--dl-duration-base); }
+.page-forward-leave-active, .page-back-leave-active, .page-fade-leave-active { transition-duration: var(--dl-duration-fast); transition-timing-function: var(--dl-ease-standard); }
+.page-forward-enter-from { opacity: 0; transform: translate3d(var(--dl-space-3), 0, 0); }
+.page-forward-leave-to { opacity: 0; transform: translate3d(calc(-1 * var(--dl-space-2)), 0, 0); }
+.page-back-enter-from { opacity: 0; transform: translate3d(calc(-1 * var(--dl-space-3)), 0, 0); }
+.page-back-leave-to { opacity: 0; transform: translate3d(var(--dl-space-2), 0, 0); }
+.page-fade-enter-from, .page-fade-leave-to { opacity: 0; }
+
 @media (min-width: 1600px) {
   :root { --market-page-gutter: var(--dl-space-12); }
 }
@@ -322,4 +338,6 @@ code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-sm); }
   *, *::before, *::after { transition-duration: var(--market-motion-reduced) !important; animation-duration: var(--market-motion-reduced) !important; animation-iteration-count: 1 !important; }
   .catalog-section::before, .market-hero, .header-search-tools, .category-menu, .results-region { animation: none; }
   .plugin-card:is(:hover, :has(.card-link:focus-visible)) .card-arrow { transform: none; }
+  .page-forward-enter-from, .page-forward-leave-to,
+  .page-back-enter-from, .page-back-leave-to { transform: none; }
 }
