@@ -15,14 +15,13 @@ watch(() => route.path, () => main.value?.focus(), { flush: 'post' })
     <a class="skip-link" href="#main">跳转到主要内容</a>
     <header class="site-header">
       <div class="container header-inner">
-        <RouterLink class="brand" to="/" aria-label="Maixai 插件市场首页">
+        <RouterLink class="brand" to="/" aria-label="Maixai Marketplace 首页">
           <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <path d="M6 24V8l10 10L26 8v16M6 16l10 10 10-10" />
           </svg>
-          <span class="brand-name">maixai</span>
-          <span class="brand-divider" aria-hidden="true">/</span>
-          <span class="brand-context">插件市场</span>
+          <span class="brand-name">Maixai Marketplace</span>
         </RouterLink>
+        <div id="market-header-controls" class="header-controls"></div>
         <nav aria-label="站点导航">
           <a
             class="header-link"
