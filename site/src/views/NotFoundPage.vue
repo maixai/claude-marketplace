@@ -3,11 +3,10 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <section aria-labelledby="not-found-heading">
-    <h2 id="not-found-heading" class="section-title">页面不存在</h2>
-    <p class="section-note">你访问的地址没有对应的页面。</p>
-    <p>
-      <RouterLink class="text-link" to="/">返回插件列表</RouterLink>
-    </p>
+  <section class="not-found" aria-labelledby="not-found-heading">
+    <p class="eyebrow">404 / PAGE NOT FOUND</p>
+    <h1 id="not-found-heading" class="page-title">这个页面不在目录中</h1>
+    <p class="lead">你访问的地址没有对应的页面，返回市场继续发现插件。</p>
+    <RouterLink class="button button--primary" to="/">返回插件列表 <span aria-hidden="true">→</span></RouterLink>
   </section>
 </template>

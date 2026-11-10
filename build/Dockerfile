@@ -14,8 +14,11 @@ RUN npm ci
 COPY .claude-plugin/ ./.claude-plugin/
 COPY plugins/ ./plugins/
 COPY site/ ./site/
+COPY scripts/plugin-update-times.mjs ./scripts/plugin-update-times.mjs
 
-RUN npm run build
+# 只传递插件时间元数据，不把 Git 历史复制进镜像构建层。
+ARG MARKETPLACE_PLUGIN_UPDATED_AT
+RUN MARKETPLACE_PLUGIN_UPDATED_AT="$MARKETPLACE_PLUGIN_UPDATED_AT" npm run build
 
 # Stage 2: 运行
 FROM nginx:1.31.8-trixie AS runtime

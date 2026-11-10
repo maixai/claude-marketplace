@@ -1,8 +1,10 @@
+import { execFileSync } from 'node:child_process'
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import MarkdownIt from 'markdown-it'
+import { parseDocument } from 'yaml'
 
 // ─── Paths ──────────────────────────────────────────────────────────────
 
@@ -45,22 +47,34 @@ interface PluginManifest {
   userConfig?: Record<string, UserConfigField>
 }
 
-interface SkillMeta {
+interface ComponentMeta {
   name: string
-  title?: string
   description?: string
+  events?: string[]
+  model?: string
+  effort?: string
+}
+
+interface DescribedComponentMeta extends ComponentMeta {
+  description: string
 }
 
 interface Components {
-  skills: SkillMeta[]
-  commands: string[]
-  agents: string[]
-  hooks: string[]
-  mcpServers: string[]
-  lspServers: string[]
+  skills: DescribedComponentMeta[]
+  commands: DescribedComponentMeta[]
+  agents: DescribedComponentMeta[]
+  hooks: ComponentMeta[]
+  mcpServers: ComponentMeta[]
+  lspServers: ComponentMeta[]
+}
+
+interface InstallStep {
+  title: string
+  command: string
 }
 
 interface CatalogPlugin {
+  updatedAt: string | null
   name: string
   source: string
   description?: string
@@ -71,6 +85,7 @@ interface CatalogPlugin {
   manifest: PluginManifest | null
   readmeHtml: string
   components: Components
+  installation: InstallStep[]
 }
 
 interface Catalog {
@@ -150,97 +165,113 @@ async function readDirectory(path: string): Promise<string[]> {
 
 // ─── Frontmatter ────────────────────────────────────────────────────────
 
-interface Frontmatter {
-  data: Record<string, string>
-  body: string
-}
-
-function parseFrontmatter(content: string): Frontmatter {
-  if (!content.startsWith('---')) return { data: {}, body: content }
-
-  const end = content.indexOf('\n---', 3)
-  if (end === -1) return { data: {}, body: content }
-
-  const data: Record<string, string> = {}
-  for (const line of content.slice(3, end).split('\n')) {
-    const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line.trim())
-    if (!match?.[1] || match[2] === undefined) continue
-    data[match[1]] = match[2].replace(/^["']|["']$/g, '').trim()
+export function parseFrontmatter(content: string, label: string): Record<string, unknown> {
+  const normalized = content.replace(/\r\n/g, '\n')
+  if (!/^---[ \t]*\n/.test(normalized)) return {}
+  const lines = normalized.split('\n')
+  const end = lines.findIndex((line, index) => index > 0 && /^---[ \t]*$/.test(line))
+  if (end < 0) throw new Error(`Unclosed YAML frontmatter in ${label}`)
+  const document = parseDocument(lines.slice(1, end).join('\n'))
+  if (document.errors.length > 0) {
+    throw new Error(`Invalid YAML frontmatter in ${label}: ${document.errors.map((error) => error.message).join('; ')}`)
   }
-
-  return { data, body: content.slice(end + 4) }
+  const data: unknown = document.toJS()
+  return data === null ? {} : requireRecord(data, `Frontmatter in ${label}`)
 }
 
 // ─── Component inventory ────────────────────────────────────────────────
 
-async function collectSkills(pluginRoot: string, pluginName: string): Promise<SkillMeta[]> {
-  const skillsDir = join(pluginRoot, 'skills')
-  const skills: SkillMeta[] = []
+function describedComponent(content: string, path: string, fallbackName: string, errors: string[], useDeclaredName = false): DescribedComponentMeta {
+  const label = relative(REPO_ROOT, path)
+  const data = parseFrontmatter(content, label)
+  const description = optionalString(data.description)?.trim() ?? ''
+  if (!description) {
+    errors.push(`${label}: missing non-empty description; add a description to the component's YAML frontmatter`)
+  }
+  const model = optionalString(data.model)?.trim()
+  const effort = optionalString(data.effort)?.trim()
+  return {
+    name: useDeclaredName ? optionalString(data.name)?.trim() || fallbackName : fallbackName,
+    description,
+    ...(model ? { model } : {}),
+    ...(effort ? { effort } : {}),
+  }
+}
 
+async function collectSkills(pluginRoot: string, pluginName: string, errors: string[]): Promise<DescribedComponentMeta[]> {
+  const skillsDir = join(pluginRoot, 'skills')
+  const skills: DescribedComponentMeta[] = []
   if (await isDirectory(skillsDir)) {
     for (const entry of await readDirectory(skillsDir)) {
-      const skillPath = join(skillsDir, entry, 'SKILL.md')
-      const content = await readText(skillPath)
-      if (content === null) continue
-      const { data } = parseFrontmatter(content)
-      skills.push({
-        name: data.name ?? entry,
-        ...(data.title !== undefined ? { title: data.title } : {}),
-        ...(data.description !== undefined ? { description: data.description } : {}),
-      })
+      const path = join(skillsDir, entry, 'SKILL.md')
+      const content = await readText(path)
+      if (content !== null) skills.push(describedComponent(content, path, entry, errors, true))
     }
     return skills
   }
-
-  // 插件根部只有 SKILL.md 时，整个插件按单技能加载
-  const rootSkill = await readText(join(pluginRoot, 'SKILL.md'))
-  if (rootSkill !== null) {
-    const { data } = parseFrontmatter(rootSkill)
-    skills.push({
-      name: data.name ?? pluginName,
-      ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.description !== undefined ? { description: data.description } : {}),
-    })
-  }
-
+  // 保留根目录单技能插件的既有支持。
+  const path = join(pluginRoot, 'SKILL.md')
+  const content = await readText(path)
+  if (content !== null) skills.push(describedComponent(content, path, pluginName, errors, true))
   return skills
 }
 
-async function collectMarkdownNames(dir: string, recursive: boolean): Promise<string[]> {
+async function collectMarkdownComponents(dir: string, recursive: boolean, errors: string[]): Promise<DescribedComponentMeta[]> {
   if (!(await isDirectory(dir))) return []
-
-  const names: string[] = []
+  const components: DescribedComponentMeta[] = []
   for (const entry of await readDirectory(dir)) {
-    const fullPath = join(dir, entry)
-    if (await isDirectory(fullPath)) {
+    const path = join(dir, entry)
+    if (await isDirectory(path)) {
       if (recursive) {
-        const nested = await collectMarkdownNames(fullPath, true)
-        names.push(...nested.map((name) => `${entry}/${name}`))
+        const nested = await collectMarkdownComponents(path, true, errors)
+        components.push(...nested.map((component) => ({ ...component, name: `${entry}/${component.name}` })))
       }
-      continue
+    } else if (entry.endsWith('.md')) {
+      components.push(describedComponent(await readFile(path, 'utf8'), path, entry.slice(0, -3), errors))
     }
-    if (entry.endsWith('.md')) names.push(entry.slice(0, -3))
   }
-  return names
+  return components
 }
 
-async function collectJsonKeys(path: string, key?: string): Promise<string[]> {
+async function collectJsonComponents(path: string, key?: string): Promise<ComponentMeta[]> {
   if ((await readText(path)) === null) return []
   const data = requireRecord(await readJson(path), relative(REPO_ROOT, path))
-  if (key === undefined) return Object.keys(data).sort()
-  const nested = data[key]
-  return isRecord(nested) ? Object.keys(nested).sort() : []
+  const entries = key === undefined ? data : requireRecord(data[key], `${relative(REPO_ROOT, path)}.${key}`)
+  return Object.keys(entries).sort().map((name) => ({ name }))
 }
 
-async function collectComponents(pluginRoot: string, pluginName: string): Promise<Components> {
-  return {
-    skills: await collectSkills(pluginRoot, pluginName),
-    commands: await collectMarkdownNames(join(pluginRoot, 'commands'), false),
-    agents: await collectMarkdownNames(join(pluginRoot, 'agents'), true),
-    hooks: await collectJsonKeys(join(pluginRoot, 'hooks', 'hooks.json')),
-    mcpServers: await collectJsonKeys(join(pluginRoot, '.mcp.json'), 'mcpServers'),
-    lspServers: await collectJsonKeys(join(pluginRoot, '.lsp.json'), 'lspServers'),
+async function collectHooks(pluginRoot: string): Promise<ComponentMeta[]> {
+  const path = join(pluginRoot, 'hooks', 'hooks.json')
+  if ((await readText(path)) === null) return []
+  const data = requireRecord(await readJson(path), relative(REPO_ROOT, path))
+  const events = Object.keys(requireRecord(data.hooks, `${relative(REPO_ROOT, path)}.hooks`)).sort()
+  if (events.length === 0) return []
+  const description = optionalString(data.description)?.trim()
+  // 顶层说明属于整份 Hooks 配置，不复制成每个事件的独立业务说明。
+  return [{ name: 'hooks/hooks.json', events, ...(description ? { description } : {}) }]
+}
+
+export async function collectComponents(pluginRoot: string, pluginName: string): Promise<Components> {
+  const errors: string[] = []
+  const components: Components = {
+    skills: await collectSkills(pluginRoot, pluginName, errors),
+    commands: await collectMarkdownComponents(join(pluginRoot, 'commands'), false, errors),
+    agents: await collectMarkdownComponents(join(pluginRoot, 'agents'), true, errors),
+    hooks: await collectHooks(pluginRoot),
+    mcpServers: await collectJsonComponents(join(pluginRoot, '.mcp.json'), 'mcpServers'),
+    lspServers: await collectJsonComponents(join(pluginRoot, '.lsp.json')),
   }
+  if (errors.length > 0) throw new Error(`Component descriptions are required for plugin "${pluginName}":\n${errors.join('\n')}`)
+  return components
+}
+
+export function createInstallation(pluginName: string, marketplaceName: string): InstallStep[] {
+  assertName(pluginName, 'Plugin name')
+  assertName(marketplaceName, 'Marketplace name')
+  return [
+    { title: '添加插件市场', command: 'claude plugin marketplace add maixai/claude-marketplace' },
+    { title: '安装此插件', command: `claude plugin install ${pluginName}@${marketplaceName}` },
+  ]
 }
 
 // ─── Manifest ───────────────────────────────────────────────────────────
@@ -360,7 +391,7 @@ function resolveLocalSource(name: string, source: string): string {
   return absolute
 }
 
-async function collectPlugin(entry: MarketplaceEntry): Promise<CatalogPlugin> {
+async function collectPlugin(entry: MarketplaceEntry, updatedAt: string | null, marketplaceName: string): Promise<CatalogPlugin> {
   const pluginRoot = resolveLocalSource(entry.name, entry.source)
 
   if (!(await isDirectory(pluginRoot))) {
@@ -396,9 +427,11 @@ async function collectPlugin(entry: MarketplaceEntry): Promise<CatalogPlugin> {
 
   return {
     ...entry,
+    updatedAt,
     manifest,
     readmeHtml: readme === null ? '' : markdown.render(readme),
     components: await collectComponents(pluginRoot, entry.name),
+    installation: createInstallation(entry.name, marketplaceName),
   }
 }
 
@@ -430,9 +463,19 @@ async function main(): Promise<void> {
     seen.add(entry.name)
   }
 
+  const updateTimes: unknown = JSON.parse(execFileSync(
+    process.execPath,
+    [join(REPO_ROOT, 'scripts', 'plugin-update-times.mjs')],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+  ))
+  const timestamps = requireRecord(updateTimes, 'plugin update metadata')
   const plugins: CatalogPlugin[] = []
   for (const entry of entries) {
-    plugins.push(await collectPlugin(entry))
+    const updatedAt = timestamps[entry.name]
+    if (updatedAt !== null && typeof updatedAt !== 'string') {
+      throw new Error(`Missing update metadata for ${entry.name}`)
+    }
+    plugins.push(await collectPlugin(entry, updatedAt, name))
   }
 
   const catalog: Catalog = {
@@ -451,8 +494,10 @@ async function writeOutput(catalog: Catalog): Promise<void> {
   console.log(`[catalog] wrote ${catalog.plugins.length} plugin(s) to site/src/generated/catalog.json`)
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error)
-  console.error(`[catalog] error: ${message}`)
-  process.exitCode = 1
-})
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`[catalog] error: ${message}`)
+    process.exitCode = 1
+  })
+}

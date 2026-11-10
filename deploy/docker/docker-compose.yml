@@ -6,6 +6,8 @@ services:
     build:
       context: ../..
       dockerfile: build/Dockerfile
+      args:
+        MARKETPLACE_PLUGIN_UPDATED_AT: ${MARKETPLACE_PLUGIN_UPDATED_AT:-}
     ports:
       - "${HOST_PORT:-8080}:80"
     restart: unless-stopped

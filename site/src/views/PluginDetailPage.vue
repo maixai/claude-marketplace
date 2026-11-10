@@ -2,14 +2,15 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import PluginComponents from '../components/PluginComponents.vue'
+import PluginInstallation from '../components/PluginInstallation.vue'
+import PluginKeywords from '../components/PluginKeywords.vue'
 import catalog from '../generated/catalog.json'
 import type { MarketplaceCatalog, MarketplacePluginEntry } from '../types'
 
 const props = defineProps<{ name: string }>()
-
 const data: MarketplaceCatalog = catalog
 const repository = 'maixai/claude-marketplace'
-
 const plugin = computed<MarketplacePluginEntry | null>(
   () => data.plugins.find((item) => item.name === props.name) ?? null,
 )
@@ -38,155 +39,145 @@ function userConfigEntries(entry: MarketplacePluginEntry) {
   return Object.entries(entry.manifest?.userConfig ?? {})
 }
 
-function componentCount(entry: MarketplacePluginEntry): number {
-  const { skills, commands, agents, hooks, mcpServers, lspServers } = entry.components
-  return (
-    skills.length +
-    commands.length +
-    agents.length +
-    hooks.length +
-    mcpServers.length +
-    lspServers.length
-  )
-}
+const dateFormat = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+
+const updatedDate = computed(() => {
+  const value = plugin.value?.updatedAt
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? date : null
+})
+
+const updatedLabel = computed(() => (updatedDate.value ? dateFormat.format(updatedDate.value) : '不可用'))
+
+const componentSummary = computed(() => {
+  const components = plugin.value?.components
+  if (!components) return '—'
+  const groups = [
+    { label: '技能', count: components.skills.length },
+    { label: '命令', count: components.commands.length },
+    { label: '子代理', count: components.agents.length },
+    { label: 'Hooks', count: components.hooks.length },
+    { label: 'MCP', count: components.mcpServers.length },
+    { label: 'LSP', count: components.lspServers.length },
+  ].filter((group) => group.count > 0)
+  const total = groups.reduce((sum, group) => sum + group.count, 0)
+  return total === 0 ? '0' : `${total}（${groups.map((group) => `${group.label} ${group.count}`).join(' · ')}）`
+})
+
+const readmeHtml = computed(() => {
+  const entry = plugin.value
+  if (!entry?.readmeHtml) return ''
+  const document = new DOMParser().parseFromString(entry.readmeHtml, 'text/html')
+  const first = document.body.firstElementChild
+  // 只在展示层去掉与页面身份区重复的首标题，不修改 README 源文件。
+  if (first?.tagName === 'H1' && [displayName(entry), entry.name].includes(first.textContent?.trim() ?? '')) {
+    first.remove()
+  }
+  const introduction = document.body.firstElementChild
+  if (introduction && /^H[1-6]$/.test(introduction.tagName) && /^(使用|使用说明|使用方式|usage|how to use)$/i.test(introduction.textContent?.trim() ?? '')) {
+    introduction.remove()
+  }
+  // 保留其余章节内容，并使 README 的最外层标题接续“使用说明”层级。
+  const headings = [...document.body.querySelectorAll('h1,h2,h3,h4,h5,h6')]
+  const firstLevel = Math.min(...headings.map((heading) => Number(heading.tagName.slice(1))))
+  for (const heading of headings) {
+    const level = Math.min(Number(heading.tagName.slice(1)) + 3 - firstLevel, 6)
+    const replacement = document.createElement(`h${level}`)
+    for (const attribute of heading.attributes) replacement.setAttribute(attribute.name, attribute.value)
+    replacement.innerHTML = heading.innerHTML
+    heading.replaceWith(replacement)
+  }
+  return document.body.innerHTML.trim()
+})
 </script>
 
 <template>
   <article v-if="plugin" class="plugin-detail">
-    <p class="back-link">
-      <RouterLink class="text-link" to="/">← 返回插件列表</RouterLink>
-    </p>
+    <nav class="plugin-back" aria-label="返回市场">
+      <RouterLink to="/">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
+        插件市场
+      </RouterLink>
+    </nav>
 
-    <header class="plugin-header">
-      <div class="row row--between">
-        <h2 class="section-title">{{ displayName(plugin) }}</h2>
-        <span v-if="version(plugin)" class="tag">v{{ version(plugin) }}</span>
-      </div>
-      <p class="lead">{{ description(plugin) }}</p>
-      <ul v-if="plugin.tags?.length || plugin.category" class="card-meta">
-        <li v-if="plugin.category" class="tag">{{ plugin.category }}</li>
-        <li v-for="tag in plugin.tags ?? []" :key="tag" class="tag">{{ tag }}</li>
-      </ul>
-      <p v-if="authorName(plugin)" class="plugin-author">作者：{{ authorName(plugin) }}</p>
-    </header>
+    <section class="plugin-hero" aria-label="插件概览与安装">
+      <header class="plugin-identity">
+        <div class="plugin-meta">
+          <span class="plugin-meta-id">PLUGIN <span aria-hidden="true">/</span> {{ plugin.name }}</span>
+          <span v-if="version(plugin)" class="version">v{{ version(plugin) }}</span>
+        </div>
+        <h1 class="plugin-title">{{ displayName(plugin) }}</h1>
+        <p class="plugin-summary">{{ description(plugin) }}</p>
+        <div class="plugin-attribution">
+          <span v-if="authorName(plugin)" class="plugin-author"><span>作者</span>{{ authorName(plugin) }}</span>
+          <a class="plugin-source" :href="sourceUrl(plugin)" target="_blank" rel="noopener noreferrer" aria-label="查看插件源码（在新标签页打开）">
+            查看源码 <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <dl class="plugin-spec">
+          <div class="plugin-spec-row">
+            <dt>分类</dt>
+            <dd>{{ plugin.category || '—' }}</dd>
+          </div>
+          <div class="plugin-spec-row">
+            <dt>组件</dt>
+            <dd>{{ componentSummary }}</dd>
+          </div>
+          <div class="plugin-spec-row">
+            <dt>更新</dt>
+            <dd>
+              <time v-if="updatedDate" :datetime="updatedDate.toISOString()">{{ updatedLabel }}</time>
+              <span v-else>{{ updatedLabel }}</span>
+            </dd>
+          </div>
+        </dl>
+        <PluginKeywords :keywords="plugin.manifest?.keywords ?? []" />
+      </header>
 
-    <section class="detail-section" aria-labelledby="install-heading">
-      <h3 id="install-heading" class="subsection-title">安装</h3>
-      <p class="card-command">
-        <code class="plugin-command">
-          claude plugin install {{ plugin.name }}@{{ data.name }}
-        </code>
-      </p>
+      <aside class="plugin-installation" aria-label="插件安装引导">
+        <PluginInstallation :steps="plugin.installation" />
+      </aside>
     </section>
 
-    <section class="detail-section" aria-labelledby="components-heading">
-      <h3 id="components-heading" class="subsection-title">组件</h3>
-      <p v-if="componentCount(plugin) === 0" class="section-note">该插件没有声明任何组件。</p>
-      <dl v-else class="component-list">
-        <div v-if="plugin.components.skills.length > 0" class="component-item">
-          <dt>技能</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="skill in plugin.components.skills" :key="skill.name">
-                <code>{{ skill.name }}</code>
-                <span v-if="skill.description" class="item-note">{{ skill.description }}</span>
-              </li>
-            </ul>
-          </dd>
-        </div>
-        <div v-if="plugin.components.agents.length > 0" class="component-item">
-          <dt>子代理</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="agent in plugin.components.agents" :key="agent">
-                <code>{{ agent }}</code>
-              </li>
-            </ul>
-          </dd>
-        </div>
-        <div v-if="plugin.components.commands.length > 0" class="component-item">
-          <dt>命令</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="command in plugin.components.commands" :key="command">
-                <code>{{ command }}</code>
-              </li>
-            </ul>
-          </dd>
-        </div>
-        <div v-if="plugin.components.hooks.length > 0" class="component-item">
-          <dt>Hooks</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="hook in plugin.components.hooks" :key="hook">
-                <code>{{ hook }}</code>
-              </li>
-            </ul>
-          </dd>
-        </div>
-        <div v-if="plugin.components.mcpServers.length > 0" class="component-item">
-          <dt>MCP Servers</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="server in plugin.components.mcpServers" :key="server">
-                <code>{{ server }}</code>
-              </li>
-            </ul>
-          </dd>
-        </div>
-        <div v-if="plugin.components.lspServers.length > 0" class="component-item">
-          <dt>LSP Servers</dt>
-          <dd>
-            <ul class="item-list">
-              <li v-for="server in plugin.components.lspServers" :key="server">
-                <code>{{ server }}</code>
-              </li>
-            </ul>
-          </dd>
-        </div>
-      </dl>
-    </section>
+    <div class="plugin-body">
+      <section class="plugin-document" aria-labelledby="readme-heading">
+        <h2 id="readme-heading" class="plugin-section-title">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6" /></svg>
+          使用说明
+        </h2>
+        <!-- 内容已经在构建期禁用原始 HTML，此处仅呈现去重后的阅读层级。 -->
+        <div v-if="readmeHtml" class="prose" v-html="readmeHtml"></div>
+        <p v-else class="section-note">暂无额外使用说明，请参考下方组件介绍。</p>
 
-    <section v-if="userConfigEntries(plugin).length > 0" class="detail-section" aria-labelledby="config-heading">
-      <h3 id="config-heading" class="subsection-title">配置项</h3>
-      <div class="table-wrap">
-        <table class="config-table">
-          <thead>
-            <tr>
-              <th scope="col">名称</th>
-              <th scope="col">类型</th>
-              <th scope="col">必填</th>
-              <th scope="col">说明</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="[key, field] in userConfigEntries(plugin)" :key="key">
-              <td><code>{{ key }}</code></td>
-              <td>{{ field.type ?? 'string' }}</td>
-              <td>{{ field.required ? '是' : '否' }}</td>
-              <td>{{ field.description ?? field.title ?? '' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <section v-if="userConfigEntries(plugin).length > 0" class="plugin-configuration" aria-labelledby="config-heading">
+          <h3 id="config-heading" class="plugin-subheading">配置项</h3>
+          <div class="table-wrap" tabindex="0" role="region" aria-label="插件配置项，可横向滚动">
+            <table class="config-table">
+              <thead><tr><th scope="col">名称</th><th scope="col">类型</th><th scope="col">必填</th><th scope="col">说明</th></tr></thead>
+              <tbody>
+                <tr v-for="[key, field] in userConfigEntries(plugin)" :key="key">
+                  <td><code>{{ key }}</code></td>
+                  <td>{{ field.type ?? 'string' }}</td>
+                  <td><span :class="{ 'required-label': field.required }">{{ field.required ? '必填' : '可选' }}</span></td>
+                  <td>{{ field.description ?? field.title ?? '' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
 
-    <section v-if="plugin.readmeHtml" class="detail-section" aria-labelledby="readme-heading">
-      <h3 id="readme-heading" class="subsection-title">说明</h3>
-      <!-- README 由本地仓库内容在构建期渲染，来源可信 -->
-      <div class="prose" v-html="plugin.readmeHtml"></div>
-    </section>
-
-    <p class="detail-section">
-      <a class="text-link" :href="sourceUrl(plugin)">查看源文件</a>
-    </p>
+      <aside class="plugin-sidebar" aria-label="插件组件">
+        <PluginComponents :components="plugin.components" />
+      </aside>
+    </div>
   </article>
 
-  <section v-else aria-labelledby="plugin-missing-heading">
-    <h2 id="plugin-missing-heading" class="section-title">插件未找到</h2>
-    <p class="section-note">市场中没有名为 <code>{{ props.name }}</code> 的插件。</p>
-    <p>
-      <RouterLink class="text-link" to="/">返回插件列表</RouterLink>
-    </p>
+  <section v-else class="not-found" aria-labelledby="plugin-missing-heading">
+    <p class="eyebrow">PLUGIN NOT FOUND</p>
+    <h1 id="plugin-missing-heading" class="page-title">没有找到这个插件</h1>
+    <p class="lead">市场中没有名为 <code>{{ props.name }}</code> 的插件，请返回列表重新选择。</p>
+    <RouterLink class="button button--primary" to="/">返回插件列表 <span aria-hidden="true">→</span></RouterLink>
   </section>
 </template>

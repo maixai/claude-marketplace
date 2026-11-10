@@ -83,6 +83,37 @@ npm run build        # 构建站点到 site/dist
 - 汇总组件清单：`skills/`、`commands/`、`agents/`、`hooks/hooks.json`、`.mcp.json`、`.lsp.json`；
 - 严格校验：条目命名、重名、目录存在性、`plugin.json` 的 `name` 与条目一致；任一失败即非零退出，CI 会中断。
 
+### 页面内容与组件说明
+
+- 卡片和详情页的关键词标签读取插件 `plugin.json` 的 `keywords`，不将市场条目的 `category` / `tags` 混入其中。
+- 安装步骤由采集脚本根据插件名、市场名自动生成，组件介绍从组件源文件采集；站点使用公共 `PluginInstallation` / `PluginComponents` 模板统一呈现。**插件 README 只维护实际用法、示例与注意事项，不再重复安装命令、组件清单或开发目录树。**
+- README 不执行自动内容删改；新增插件应按以上约定组织文档，现有 demo 已迁移。
+
+当前采集范围为既有的六类标准目录 / 配置文件（含根目录单技能和 `agents/` 子目录），本次未扩展到自定义组件路径、内联声明或其它组件类型。
+
+| 类型 | 说明来源与校验 |
+| --- | --- |
+| Skills | `skills/<name>/SKILL.md` 或根部 `SKILL.md` 的 YAML `description`；缺失、空白或非字符串时报错 |
+| Agents | `agents/**/*.md` 的 YAML `description`；缺失、空白或非字符串时报错 |
+| Commands | `commands/*.md` 的 YAML `description`；缺失、空白或非字符串时报错 |
+| Hooks | `hooks/hooks.json` 顶层可选 `description`，整份配置作为一组展示，附带触发事件；不将配置说明重复冒充各事件的说明 |
+| MCP / LSP | 分别读取 `.mcp.json` 的 `mcpServers` 映射和 `.lsp.json` 根映射，展示类型与名称，不要求非官方 `description` 字段 |
+
+这里对 Skills / Commands 的必填校验是**本市场的展示质量约定**，不是声称 Claude Code 官方将这些字段全部设为必填。标准 YAML 解析支持多行说明；生成失败会列出缺失说明的组件路径并非零退出，不覆盖已有目录数据。
+
+```bash
+node --test site/scripts/collect-plugins.test.mjs
+```
+
+### 插件更新时间
+
+卡片的“更新于”取该插件 `source` 目录最后一次 Git 提交的 **committer 时间**，代码与文档修改均计入；不使用整个仓库 HEAD 的时间、文件 mtime 或站点构建时间。未提交的本地修改不会改变此日期。
+
+- `scripts/plugin-update-times.mjs` 读取完整 Git 历史，生成以插件名称为键的 UTC ISO 时间映射；页面按浏览器时区显示日期，悬停日期可查看精确时间与时区。
+- 镜像构建由 `scripts/plugin-update-times.sh` 在只读挂载仓库的 Debian Node 容器中采集元数据，通过 `MARKETPLACE_PLUGIN_UPDATED_AT` 构建参数传入；不依赖宿主 Node，不把 `.git` 复制进镜像。
+- 两条 CI 流程均获取完整历史。浅克隆、无 Git 历史或尚无提交记录时，页面明确显示“更新时间不可用”，不填充猜测日期。
+- 本地安装了 Node 时，可运行 `node --test scripts/plugin-update-times.test.mjs` 验证时间采集与容器元数据输入。
+
 ## 构建触发范围
 
 CI 只在与产物相关的路径变更时运行：
@@ -90,12 +121,14 @@ CI 只在与产物相关的路径变更时运行：
 | 变更路径 | 镜像发布 | Workers 部署 |
 | --- | --- | --- |
 | `site/**` | ✓ | ✓ |
+| `scripts/plugin-update-times.mjs` | ✓ | ✓ |
+| `scripts/plugin-update-times.sh` | ✓ | — |
 | `plugins/**` | ✓ | ✓ |
 | `.claude-plugin/**` | ✓ | ✓ |
 | `package.json` / `package-lock.json` | ✓ | ✓ |
 | `build/**` / `.dockerignore` | ✓ | — |
 | `deploy/cloudflare/**` | — | ✓ |
-| `README.md`、`Makefile`、`scripts/**`、`.github/**`、`deploy/docker/**` | — | — |
+| `README.md`、`Makefile`、其余 `scripts/**`、`.github/**`、`deploy/docker/**` | — | — |
 
 `workflow_dispatch` 不受路径过滤影响，可随时手动触发。
 
@@ -120,6 +153,7 @@ make deploy-workers       # 构建并部署到 Cloudflare Workers
 
 | 目标 | 镜像 | 说明 |
 | --- | --- | --- |
+| 插件更新时间采集 | `node:26.13-trixie` | 只读挂载仓库，输出供镜像构建使用的时间元数据 |
 | Docker 构建阶段 | `node:26.13-trixie-slim` | `npm ci` + 站点构建 |
 | Docker 运行阶段 | `nginx:1.31.8-trixie` | 只包含 nginx 与 `site/dist` |
 | Workers 部署 job | `node:26.13-trixie` | 镜像自带 git，Checkout、构建与 `wrangler deploy` 都在容器内完成 |
@@ -169,8 +203,10 @@ make deploy-workers
 开发与生产共用同一份 `deploy/docker/docker-compose.yml`，通过环境变量区分。以下命令均在仓库根目录执行：
 
 ```bash
-# dev：本地构建并启动
-HOST_PORT=8080 docker compose -f deploy/docker/docker-compose.yml up -d --build
+# dev：采集插件更新时间，再本地构建并启动；无需宿主安装 Node
+MARKETPLACE_PLUGIN_UPDATED_AT=$(bash scripts/plugin-update-times.sh) && \
+MARKETPLACE_PLUGIN_UPDATED_AT="$MARKETPLACE_PLUGIN_UPDATED_AT" HOST_PORT=8080 \
+  docker compose -f deploy/docker/docker-compose.yml up -d --build
 
 # prod：使用已推送的镜像
 IMAGE=ghcr.io/maixai/claude-marketplace TAG=<immutable-tag> \

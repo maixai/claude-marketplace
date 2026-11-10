@@ -76,7 +76,8 @@ deploy-workers: install ## 构建并部署到 Cloudflare Workers
 
 # ---- Docker --------------------------------------------------------------
 build-image: ## 构建 Docker 镜像
-	docker build -f $(DOCKERFILE) -t $(IMAGE):$(IMAGE_TAG) .
+	@updates="$$(bash scripts/plugin-update-times.sh)" && \
+		docker build --build-arg "MARKETPLACE_PLUGIN_UPDATED_AT=$$updates" -f $(DOCKERFILE) -t $(IMAGE):$(IMAGE_TAG) .
 	@if [ "$(PUSH_LATEST)" = "1" ]; then docker tag $(IMAGE):$(IMAGE_TAG) $(IMAGE):latest; fi
 	@echo ">> image built: $(IMAGE):$(IMAGE_TAG)"
 
