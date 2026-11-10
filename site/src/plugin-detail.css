@@ -2,6 +2,7 @@
 .plugin-detail {
   --plugin-install-min-width: 360px;
   --plugin-section-gap: calc(var(--dl-space-12) + var(--dl-space-4));
+  --plugin-rail-shadow: 0 2px 8px rgba(8, 6, 4, 0.24);
   --copy-beam-duration: calc(var(--dl-duration-fast) * 5);
   --copy-shake-duration: calc(var(--dl-duration-fast) * 2.5);
   width: 100%;
@@ -243,21 +244,62 @@
   .copy-toast { inset-inline: var(--dl-space-4); inset-block-start: calc(var(--market-header-height) + var(--dl-space-4)); inset-block-end: auto; max-width: none; }
 }
 
-/* 正文采用与概览面板同栅格的双栏：左侧阅读、右侧组件清单，窄屏堆叠。 */
+/* 正文采用可折叠双栏：左侧阅读、右侧组件清单；折叠后阅读区获得整行宽度，窄屏堆叠。 */
 .plugin-detail .plugin-body {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(var(--plugin-install-min-width), 2fr);
+  display: flex;
   align-items: stretch;
   min-width: 0;
   margin-block-start: var(--dl-space-12);
-  row-gap: var(--plugin-section-gap);
 }
-.plugin-detail .plugin-document { min-width: 0; padding-inline-end: var(--dl-space-8); }
+.plugin-detail .plugin-document { flex: 1 1 auto; min-width: 0; padding-inline-end: var(--dl-space-8); }
 .plugin-detail .plugin-sidebar {
-  min-width: 0;
+  position: relative;
+  flex: 0 0 40%;
+  min-width: var(--plugin-install-min-width);
   padding-inline-start: var(--dl-space-8);
   border-inline-start: var(--dl-border-width) solid var(--dl-border-base);
+  transition: flex-basis var(--dl-duration-base) var(--dl-ease-out), min-width var(--dl-duration-base) var(--dl-ease-out), padding-inline-start var(--dl-duration-base) var(--dl-ease-out);
 }
+.plugin-detail .plugin-body.is-components-collapsed .plugin-sidebar {
+  flex-basis: var(--dl-space-12);
+  min-width: var(--dl-space-12);
+  padding-inline-start: 0;
+}
+/* 分隔线上的折叠滑钮：常驻可见，避免“看不出来能点”的隐藏式把手。 */
+.plugin-detail .components-rail {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: var(--dl-space-6);
+  inset-inline-start: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dl-space-2);
+  width: var(--dl-space-8);
+  min-height: calc(var(--dl-space-12) * 2);
+  padding: var(--dl-space-2) 0;
+  border: var(--dl-border-width) solid var(--dl-border-base);
+  border-radius: var(--dl-radius-md);
+  background: var(--dl-bg-elevated);
+  color: var(--dl-text-tertiary);
+  box-shadow: var(--plugin-rail-shadow);
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: border-color var(--dl-duration-fast) var(--dl-ease-out), background-color var(--dl-duration-fast) var(--dl-ease-out), color var(--dl-duration-fast) var(--dl-ease-out);
+}
+.plugin-detail .components-rail::before { content: ''; position: absolute; inset: calc(-1 * var(--dl-space-2)); }
+.plugin-detail .components-rail:hover { border-color: color-mix(in srgb, var(--dl-accent) 60%, var(--dl-border-base)); background: var(--dl-bg-raised); color: var(--dl-accent); }
+.plugin-detail .components-rail:focus-visible { outline: none; box-shadow: var(--dl-focus-ring); }
+.plugin-detail .components-rail .icon { color: var(--dl-accent); transition: transform var(--dl-duration-base) var(--dl-ease-out); }
+.plugin-detail .plugin-sidebar.is-collapsed .components-rail .icon { transform: rotate(180deg); }
+.plugin-detail .components-rail-label { display: flex; flex-direction: column; align-items: center; font-size: var(--dl-font-size-xs); line-height: var(--dl-line-tight); letter-spacing: 0; }
+.plugin-detail .components-rail-count { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
+.plugin-detail .components-rail:hover .components-rail-count { color: var(--dl-accent); }
+.plugin-detail .plugin-sidebar-content { overflow: hidden; }
+.plugin-detail .components-fade-enter-active { transition: opacity var(--dl-duration-base) var(--dl-ease-out); }
+.plugin-detail .components-fade-leave-active { transition: opacity var(--dl-duration-fast) var(--dl-ease-standard); }
+.plugin-detail .components-fade-enter-from, .plugin-detail .components-fade-leave-to { opacity: 0; }
 .plugin-detail .plugin-sidebar .component-groups { gap: var(--dl-space-8); }
 .plugin-detail .plugin-section-title {
   display: flex;
@@ -309,6 +351,12 @@
 .plugin-detail .prose th, .plugin-detail .prose td { padding: var(--dl-space-2) var(--dl-space-3); border: var(--dl-border-width) solid var(--dl-border-base); text-align: left; }
 .plugin-detail .prose img, .plugin-detail .prose video { max-width: 100%; height: auto; }
 .plugin-detail .prose hr { margin-block: var(--dl-space-6); border: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
+/* 折叠组件栏后，阅读区获得整行宽度；正文仍保持可读行宽，宽表格 / 代码 / 图片用满新宽度。 */
+.plugin-detail .plugin-body.is-components-collapsed .plugin-document .prose { max-width: none; }
+.plugin-detail .plugin-body.is-components-collapsed .plugin-document .prose > p,
+.plugin-detail .plugin-body.is-components-collapsed .plugin-document .prose > ul,
+.plugin-detail .plugin-body.is-components-collapsed .plugin-document .prose > ol,
+.plugin-detail .plugin-body.is-components-collapsed .plugin-document .prose > blockquote { max-width: var(--dl-measure); }
 .plugin-detail .plugin-configuration { margin-block-start: var(--dl-space-6); }
 .plugin-detail .plugin-subheading { margin: 0 0 var(--dl-space-3); font-size: var(--dl-font-size-md); }
 .plugin-detail .table-wrap { overflow-x: auto; }
@@ -320,9 +368,37 @@
 @media (max-width: 1023px) {
   .plugin-detail .plugin-hero { grid-template-columns: minmax(0, 1fr); }
   .plugin-detail .plugin-installation { border-inline-start: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
-  .plugin-detail .plugin-body { grid-template-columns: minmax(0, 1fr); }
+  .plugin-detail .plugin-body { flex-direction: column; gap: var(--plugin-section-gap); }
   .plugin-detail .plugin-document { padding-inline-end: 0; }
-  .plugin-detail .plugin-sidebar { padding-inline-start: 0; border-inline-start: 0; }
+  .plugin-detail .plugin-sidebar {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    padding-inline-start: 0;
+    padding-block-start: var(--dl-space-8);
+    border-inline-start: 0;
+    border-block-start: var(--dl-border-width) solid var(--dl-border-base);
+    transition: padding-block-start var(--dl-duration-base) var(--dl-ease-out);
+  }
+  .plugin-detail .plugin-body.is-components-collapsed .plugin-sidebar {
+    flex-basis: auto;
+    min-width: 0;
+    min-height: var(--dl-space-12);
+    padding-block-start: var(--dl-space-6);
+  }
+  .plugin-detail .components-rail {
+    inset-block-start: 0;
+    inset-inline-start: 50%;
+    width: auto;
+    min-height: var(--dl-space-8);
+    flex-direction: row;
+    gap: var(--dl-space-1);
+    padding: 0 var(--dl-space-3);
+    transform: translate(-50%, -50%);
+  }
+  .plugin-detail .components-rail-label { flex-direction: row; }
+  .plugin-detail .components-rail .icon { transform: rotate(-90deg); }
+  .plugin-detail .plugin-sidebar.is-collapsed .components-rail .icon { transform: rotate(90deg); }
 }
 @media (max-width: 600px) {
   .plugin-detail { --plugin-section-gap: var(--dl-space-12); }
