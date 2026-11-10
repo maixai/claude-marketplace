@@ -89,9 +89,9 @@
 
   /* 首页与公共导航参数；详情布局参数独立收在 plugin-detail.css。 */
   --market-page-gutter: var(--dl-space-8);
-  /* 580px 让 1280 视口的 1201px 内容区可容纳两列（2 × 588 + 24 gap）。 */
-  --market-card-min-width: 580px;
-  --market-card-max-width: 640px;
+  /* 300px 让 1280 内容区容纳三列、1600 四列；480px 上限避免单列时过宽。 */
+  --market-card-min-width: 300px;
+  --market-card-max-width: 480px;
   --market-card-shadow: inset 0 1px 0 color-mix(in srgb, var(--dl-text-primary) 7%, transparent), 0 2px 4px rgba(8, 6, 4, 0.2), 0 10px 24px rgba(8, 6, 4, 0.28);
   --market-header-height: 64px;
   --market-brand-size: 32px;
@@ -224,9 +224,9 @@ code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-sm); }
 .count { margin-inline-start: var(--dl-space-2); font: var(--dl-font-size-sm) var(--dl-font-mono); color: var(--dl-text-tertiary); }
 .section-note { color: var(--dl-text-secondary); }
 
-.plugin-grid { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--market-card-min-width)), 1fr)); gap: var(--dl-space-6); margin: 0; padding: 0; list-style: none; }
+.plugin-grid { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--market-card-min-width)), 1fr)); gap: var(--dl-space-6); margin: 0; padding: 0; list-style: none; }
 .plugin-grid > li { min-width: 0; }
-.plugin-card { position: relative; display: flex; flex-direction: column; height: 100%; max-width: var(--market-card-max-width); margin-inline: auto; border: var(--dl-border-width) solid var(--dl-border-base); border-radius: var(--dl-radius-lg); background: var(--dl-bg-elevated); color: var(--dl-text-primary); padding: var(--dl-space-6); gap: var(--dl-space-3); transition: border-color var(--dl-duration-base) var(--dl-ease-out), background-color var(--dl-duration-base) var(--dl-ease-out), box-shadow var(--dl-duration-base) var(--dl-ease-out); }
+.plugin-card { position: relative; display: flex; flex-direction: column; height: 100%; max-width: var(--market-card-max-width); border: var(--dl-border-width) solid var(--dl-border-base); border-radius: var(--dl-radius-lg); background: var(--dl-bg-elevated); color: var(--dl-text-primary); padding: var(--dl-space-6); gap: var(--dl-space-3); transition: border-color var(--dl-duration-base) var(--dl-ease-out), background-color var(--dl-duration-base) var(--dl-ease-out), box-shadow var(--dl-duration-base) var(--dl-ease-out); }
 .plugin-card:hover, .plugin-card:has(.card-link:focus-visible) { border-color: color-mix(in srgb, var(--dl-accent) 70%, var(--dl-border-base)); background: color-mix(in srgb, var(--dl-bg-elevated), var(--dl-accent) 2%); color: var(--dl-text-primary); }
 .plugin-card:has(.card-link:focus-visible) { box-shadow: var(--dl-focus-ring); }
 .plugin-card:active { background: var(--dl-bg-raised); }
