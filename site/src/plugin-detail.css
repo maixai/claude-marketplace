@@ -252,10 +252,6 @@
   margin-block-start: var(--dl-space-12);
 }
 .plugin-detail .plugin-document { min-width: 0; }
-.plugin-detail .plugin-body > .capabilities {
-  border-block-start: var(--dl-border-width) solid var(--dl-border-base);
-  padding-block-start: var(--dl-space-6);
-}
 /* 包含组件标题行是 disclosure 控件：整行可点，chevron 指示状态。 */
 .plugin-detail .components-toggle {
   display: flex;
