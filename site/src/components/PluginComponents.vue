@@ -11,7 +11,7 @@ interface ComponentGroup {
 }
 
 const props = defineProps<{ components: PluginComponents }>()
-const collapsed = ref(true)
+const collapsed = ref(false)
 
 // 顺序即展示顺序：先 Skill、再 SubAgent，其余按用户使用频率从高到低排列。
 const groups = computed<ComponentGroup[]>(() => [
