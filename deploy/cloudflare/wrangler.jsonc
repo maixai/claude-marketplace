@@ -4,7 +4,7 @@
   "compatibility_date": "2026-11-06",
   "workers_dev": false,
   "routes": [
-    { "pattern": "claude-marketplace.maixai.net", "custom_domain": true }
+    { "pattern": "marketplace.maixai.net", "custom_domain": true }
   ],
   "assets": {
     "directory": "../../site/dist",
