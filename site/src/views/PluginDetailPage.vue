@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import PluginComponents from '../components/PluginComponents.vue'
@@ -11,7 +11,6 @@ import type { MarketplaceCatalog, MarketplacePluginEntry } from '../types'
 const props = defineProps<{ name: string }>()
 const data: MarketplaceCatalog = catalog
 const repository = 'maixai/claude-marketplace'
-const componentsCollapsed = ref(false)
 const plugin = computed<MarketplacePluginEntry | null>(
   () => data.plugins.find((item) => item.name === props.name) ?? null,
 )
@@ -65,21 +64,6 @@ const componentSummary = computed(() => {
   const total = groups.reduce((sum, group) => sum + group.count, 0)
   return total === 0 ? '0' : `${total}（${groups.map((group) => `${group.label} ${group.count}`).join(' · ')}）`
 })
-
-const componentTotal = computed(() => {
-  const components = plugin.value?.components
-  if (!components) return 0
-  return components.skills.length
-    + components.commands.length
-    + components.agents.length
-    + components.hooks.length
-    + components.mcpServers.length
-    + components.lspServers.length
-})
-
-function toggleComponents(): void {
-  componentsCollapsed.value = !componentsCollapsed.value
-}
 
 const readmeHtml = computed(() => {
   const entry = plugin.value
@@ -156,7 +140,7 @@ const readmeHtml = computed(() => {
       </aside>
     </section>
 
-    <div class="plugin-body" :class="{ 'is-components-collapsed': componentsCollapsed }">
+    <div class="plugin-body">
       <section class="plugin-document" aria-labelledby="readme-heading">
         <h2 id="readme-heading" class="plugin-section-title">
           <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6" /></svg>
@@ -184,24 +168,7 @@ const readmeHtml = computed(() => {
         </section>
       </section>
 
-      <aside class="plugin-sidebar" :class="{ 'is-collapsed': componentsCollapsed }" aria-label="插件组件">
-        <button
-          class="components-rail"
-          type="button"
-          :aria-expanded="!componentsCollapsed"
-          aria-controls="plugin-components-content"
-          :aria-label="componentsCollapsed ? `展开包含组件（${componentTotal} 个）` : `折叠包含组件（${componentTotal} 个）`"
-          :title="componentsCollapsed ? '展开包含组件' : '折叠包含组件'"
-          @click="toggleComponents"
-        >
-          <svg class="icon components-rail-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
-        </button>
-        <Transition name="components-fade">
-          <div v-show="!componentsCollapsed" id="plugin-components-content" class="plugin-sidebar-content">
-            <PluginComponents :components="plugin.components" />
-          </div>
-        </Transition>
-      </aside>
+      <PluginComponents :components="plugin.components" />
     </div>
   </article>
 
