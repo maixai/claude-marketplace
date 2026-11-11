@@ -35,12 +35,16 @@ const total = computed(() => groups.value.reduce((sum, group) => sum + group.ite
         type="button"
         :aria-expanded="!collapsed"
         aria-controls="components-content"
+        :aria-label="`包含组件，${total} 个，${collapsed ? '展开' : '收起'}`"
         @click="collapsed = !collapsed"
       >
         <svg class="icon components-toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" /></svg>
         <span class="components-toggle-label">包含组件</span>
         <span class="count">{{ total }}</span>
-        <svg class="icon components-toggle-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        <span class="components-toggle-action">
+          <span class="components-toggle-action-label">{{ collapsed ? '展开' : '收起' }}</span>
+          <svg class="icon components-toggle-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </span>
       </button>
     </h2>
     <Transition name="components-reveal">

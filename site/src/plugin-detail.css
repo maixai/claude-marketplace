@@ -260,6 +260,7 @@
 .plugin-detail .components-toggle {
   display: flex;
   width: 100%;
+  min-height: var(--dl-target-size);
   align-items: center;
   gap: var(--dl-space-3);
   padding: 0;
@@ -277,8 +278,23 @@
 .plugin-detail .components-toggle:hover .components-toggle-icon { color: var(--dl-accent); }
 .plugin-detail .components-toggle-label { min-width: 0; }
 .plugin-detail .components-toggle .count { margin-inline-start: 0; }
-.plugin-detail .components-toggle-chevron { margin-inline-start: auto; color: var(--dl-text-tertiary); transition: transform var(--dl-duration-base) var(--dl-ease-out), color var(--dl-duration-fast) var(--dl-ease-out); }
-.plugin-detail .components-toggle:hover .components-toggle-chevron { color: var(--dl-accent); }
+.plugin-detail .components-toggle-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dl-space-1);
+  min-height: var(--dl-space-8);
+  margin-inline-start: auto;
+  padding: 0 var(--dl-space-2);
+  border: var(--dl-border-width) solid var(--dl-border-base);
+  border-radius: var(--dl-radius-sm);
+  background: var(--dl-bg-raised);
+  color: var(--dl-text-secondary);
+  font-size: var(--dl-font-size-xs);
+  line-height: var(--dl-line-tight);
+  transition: border-color var(--dl-duration-fast) var(--dl-ease-out), background-color var(--dl-duration-fast) var(--dl-ease-out), color var(--dl-duration-fast) var(--dl-ease-out);
+}
+.plugin-detail .components-toggle:hover .components-toggle-action { border-color: color-mix(in srgb, var(--dl-accent) 55%, var(--dl-border-base)); background: var(--dl-accent-subtle); color: var(--dl-accent); }
+.plugin-detail .components-toggle-chevron { width: var(--dl-icon-sm); height: var(--dl-icon-sm); color: currentColor; transition: transform var(--dl-duration-base) var(--dl-ease-out); }
 .plugin-detail .components-toggle.is-expanded .components-toggle-chevron { transform: rotate(180deg); }
 .plugin-detail .components-content { min-width: 0; }
 .plugin-detail .components-reveal-enter-active { transition: opacity var(--dl-duration-base) var(--dl-ease-out); }
