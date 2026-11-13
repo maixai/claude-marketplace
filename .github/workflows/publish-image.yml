@@ -32,7 +32,7 @@ jobs:
       - name: Collect plugin update times
         id: plugin-updates
         run: |
-          updates=$(bash scripts/plugin-update-times.sh)
+          updates=$(bash scripts/plugin-update-times.sh --require-committed)
           printf 'json=%s\n' "$updates" >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx

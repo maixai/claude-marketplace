@@ -48,7 +48,10 @@ const updatedDate = computed(() => {
   return Number.isFinite(date.getTime()) ? date : null
 })
 
-const updatedLabel = computed(() => (updatedDate.value ? dateFormat.format(updatedDate.value) : '不可用'))
+const updatedLabel = computed(() => {
+  if (updatedDate.value) return dateFormat.format(updatedDate.value)
+  return plugin.value?.hasCommitHistory === false ? '尚未提交' : '不可用'
+})
 
 const componentSummary = computed(() => {
   const components = plugin.value?.components
@@ -87,6 +90,45 @@ const readmeHtml = computed(() => {
     for (const attribute of heading.attributes) replacement.setAttribute(attribute.name, attribute.value)
     replacement.innerHTML = heading.innerHTML
     heading.replaceWith(replacement)
+  }
+  // Frame examples consistently without changing their code or inventing file names.
+  for (const [index, pre] of [...document.body.querySelectorAll('pre')].entries()) {
+    const code = pre.querySelector('code')
+    const language = [...(code?.classList ?? [])].find((name) => name.startsWith('language-'))?.slice(9) ?? ''
+    const label = /^[a-z0-9_+#.-]{1,32}$/i.test(language) ? language.toUpperCase() : 'CODE'
+    const panel = document.createElement('figure')
+    panel.className = 'prose-code-panel'
+    const header = document.createElement('figcaption')
+    header.className = 'prose-code-header'
+    header.id = `readme-example-${entry.name}-${index + 1}`
+    const kind = document.createElement('span')
+    kind.className = 'prose-code-kind'
+    const symbol = document.createElement('span')
+    symbol.className = 'prose-code-symbol'
+    symbol.setAttribute('aria-hidden', 'true')
+    symbol.textContent = label === 'TEXT' || label === 'PLAINTEXT' ? '>_' : '{ }'
+    const languageLabel = document.createElement('span')
+    languageLabel.textContent = label
+    kind.append(symbol, languageLabel)
+    const sequence = document.createElement('span')
+    sequence.className = 'prose-code-sequence'
+    sequence.textContent = `示例 ${String(index + 1).padStart(2, '0')}`
+    header.append(kind, sequence)
+    pre.tabIndex = 0
+    pre.setAttribute('role', 'region')
+    pre.setAttribute('aria-labelledby', header.id)
+    pre.before(panel)
+    panel.append(header, pre)
+  }
+  // Keep native table semantics while confining wide content to a focusable scroll region.
+  for (const table of document.body.querySelectorAll('table')) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'prose-table-wrap'
+    wrapper.tabIndex = 0
+    wrapper.setAttribute('role', 'region')
+    wrapper.setAttribute('aria-label', '使用说明表格，可横向滚动')
+    table.before(wrapper)
+    wrapper.appendChild(table)
   }
   return document.body.innerHTML.trim()
 })

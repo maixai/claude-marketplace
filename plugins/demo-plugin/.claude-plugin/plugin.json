@@ -1,10 +1,10 @@
 {
   "name": "demo-plugin",
-  "displayName": "Demo Plugin",
-  "description": "演示用插件：包含一个 Skill 和一个 SubAgent，用于验证市场站点的展示与安装链路",
+  "displayName": "演示插件",
+  "description": "演示插件结构、组件展示和安装流程。",
   "version": "0.1.0",
   "author": {
     "name": "ZACHARY ZHAO"
   },
-  "keywords": ["demo", "example", "skill", "agent"]
+  "keywords": ["示例", "技能", "子代理"]
 }

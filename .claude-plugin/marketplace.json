@@ -8,9 +8,16 @@
     {
       "name": "demo-plugin",
       "source": "./plugins/demo-plugin",
-      "description": "演示用插件：包含一个 Skill 和一个 SubAgent，用于验证市场站点的展示与安装链路",
-      "category": "demo",
-      "tags": ["demo", "skill", "agent"]
+      "description": "演示插件结构、组件展示和安装流程。",
+      "category": "示例",
+      "tags": ["示例", "技能", "子代理"]
+    },
+    {
+      "name": "extension-builder",
+      "source": "./plugins/extension-builder",
+      "description": "创建和维护 Claude Code 组件与 maixai 市场插件，先确认方案再实施。",
+      "category": "开发工具",
+      "tags": ["开发", "技能", "插件", "评审"]
     }
   ]
 }

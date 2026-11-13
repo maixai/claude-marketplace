@@ -49,7 +49,7 @@ jobs:
         run: |
           node -e "
             const catalog = require('./site/src/generated/catalog.json');
-            const missing = catalog.plugins.filter((plugin) => !plugin.updatedAt);
+            const missing = catalog.plugins.filter((plugin) => !plugin.updatedAt || plugin.hasCommitHistory !== true);
             if (missing.length) {
               console.error('Missing updatedAt:', missing.map((plugin) => plugin.name).join(', '));
               process.exit(1);

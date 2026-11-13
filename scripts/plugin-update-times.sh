@@ -8,4 +8,4 @@ exec docker run --rm \
   --mount "type=bind,source=$repo_root,target=/workspace,readonly" \
   --workdir /workspace \
   node:26.13-trixie \
-  node scripts/plugin-update-times.mjs
+  node scripts/plugin-update-times.mjs --metadata --require-known "$@"

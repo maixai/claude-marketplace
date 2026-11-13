@@ -1,6 +1,6 @@
 ---
 name: plugin-audit
-description: 审计一个 Claude Code 插件目录是否符合官方结构与清单规范。当用户要求检查插件目录、校验 marketplace 条目、或复核插件打包时使用。
+description: 检查插件目录、清单和市场条目，列出打包问题与修复建议。
 ---
 
 # Plugin Audit

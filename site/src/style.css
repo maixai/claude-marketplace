@@ -240,12 +240,15 @@ code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-sm); }
 .card-category.is-active { border-color: color-mix(in srgb, var(--dl-accent) 55%, var(--dl-border-base)); background: var(--dl-accent-subtle); color: var(--dl-accent); }
 .card-category.is-active:hover { border-color: var(--dl-accent); background: color-mix(in srgb, var(--dl-accent-subtle), var(--dl-accent) 12%); color: var(--dl-accent-hover); }
 .card-category .icon { width: var(--dl-icon-sm); height: var(--dl-icon-sm); }
-.card-heading { display: flex; align-items: baseline; min-width: 0; gap: var(--dl-space-3); }
-.card-heading .card-title { flex: 0 1 auto; min-width: 0; }
-.card-heading .version { flex-shrink: 0; }
-.card-heading .card-arrow { flex-shrink: 0; align-self: center; margin-inline-start: auto; }
+/* Separate the install identifier from its human-readable name and release metadata. */
+.card-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; min-width: 0; gap: var(--dl-space-1) var(--dl-space-3); }
+.card-heading .card-title { min-width: 0; }
+.card-heading .version { flex: none; }
+.card-heading .card-arrow { align-self: start; margin-block-start: calc((var(--dl-font-size-body) * var(--dl-line-snug) - var(--dl-icon-md)) / 2); }
+.card-subtitle-row { grid-column: 1 / -1; display: flex; align-items: baseline; min-width: 0; gap: var(--dl-space-3); }
+.card-display-name { flex: 1; min-width: 0; color: var(--dl-text-secondary); font-family: var(--dl-font-sans); font-size: var(--dl-font-size-sm); line-height: var(--dl-line-snug); overflow-wrap: anywhere; }
 .version { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); white-space: nowrap; }
-.card-title { font-family: var(--dl-font-display); font-size: var(--dl-font-size-lg); font-weight: var(--dl-weight-strong); line-height: var(--dl-line-snug); overflow-wrap: anywhere; }
+.card-title { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-body); font-weight: var(--dl-weight-strong); line-height: var(--dl-line-snug); overflow-wrap: anywhere; }
 /* 用途说明完整呈现，由内容决定高度，不依赖悬停或触屏无法使用的提示。 */
 .card-description { min-width: 0; max-width: 100%; font-family: var(--dl-font-sans); font-size: var(--dl-font-size-md); font-weight: var(--dl-weight-normal); line-height: var(--dl-line-body); color: var(--dl-text-secondary); overflow-wrap: anywhere; text-wrap: balance; }
 .card-updated { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--dl-space-2); margin-block-start: auto; color: var(--dl-text-tertiary); font-size: var(--dl-font-size-xs); }
@@ -331,7 +334,7 @@ code { font-family: var(--dl-font-mono); font-size: var(--dl-font-size-sm); }
   .header-search-tools { gap: var(--dl-space-2); }
   .plugin-grid { grid-template-columns: minmax(0, 1fr); }
   .plugin-card { max-width: none; }
-  .card-heading { gap: var(--dl-space-2); }
+  .card-heading { column-gap: var(--dl-space-2); }
   .clear-categories { margin-inline-start: 0; }
   .empty-state { padding: var(--dl-space-6); }
 }

@@ -75,6 +75,7 @@ interface InstallStep {
 
 interface CatalogPlugin {
   updatedAt: string | null
+  hasCommitHistory: boolean | null
   name: string
   source: string
   description?: string
@@ -391,7 +392,7 @@ function resolveLocalSource(name: string, source: string): string {
   return absolute
 }
 
-async function collectPlugin(entry: MarketplaceEntry, updatedAt: string | null, marketplaceName: string): Promise<CatalogPlugin> {
+async function collectPlugin(entry: MarketplaceEntry, updatedAt: string | null, hasCommitHistory: boolean | null, marketplaceName: string): Promise<CatalogPlugin> {
   const pluginRoot = resolveLocalSource(entry.name, entry.source)
 
   if (!(await isDirectory(pluginRoot))) {
@@ -428,6 +429,7 @@ async function collectPlugin(entry: MarketplaceEntry, updatedAt: string | null, 
   return {
     ...entry,
     updatedAt,
+    hasCommitHistory,
     manifest,
     readmeHtml: readme === null ? '' : markdown.render(readme),
     components: await collectComponents(pluginRoot, entry.name),
@@ -465,17 +467,21 @@ async function main(): Promise<void> {
 
   const updateTimes: unknown = JSON.parse(execFileSync(
     process.execPath,
-    [join(REPO_ROOT, 'scripts', 'plugin-update-times.mjs')],
+    [join(REPO_ROOT, 'scripts', 'plugin-update-times.mjs'), '--metadata',
+      ...(process.env.MARKETPLACE_REQUIRE_KNOWN_UPDATE_TIMES === '1' ? ['--require-known'] : [])],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
   ))
   const timestamps = requireRecord(updateTimes, 'plugin update metadata')
   const plugins: CatalogPlugin[] = []
   for (const entry of entries) {
-    const updatedAt = timestamps[entry.name]
-    if (updatedAt !== null && typeof updatedAt !== 'string') {
-      throw new Error(`Missing update metadata for ${entry.name}`)
+    const metadata = requireRecord(timestamps[entry.name], `Update metadata for ${entry.name}`)
+    const updatedAt = metadata.updatedAt
+    const status = metadata.status
+    if ((updatedAt !== null && typeof updatedAt !== 'string')
+      || (status !== 'committed' && status !== 'uncommitted' && status !== 'unavailable')) {
+      throw new Error(`Invalid update metadata for ${entry.name}`)
     }
-    plugins.push(await collectPlugin(entry, updatedAt, name))
+    plugins.push(await collectPlugin(entry, updatedAt, status === 'unavailable' ? null : status === 'committed', name))
   }
 
   const catalog: Catalog = {

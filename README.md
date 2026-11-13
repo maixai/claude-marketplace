@@ -85,6 +85,7 @@ npm run build        # 构建站点到 site/dist
 
 ### 页面内容与组件说明
 
+- 插件展示名称、简介、分类、关键词、组件说明和配置项说明统一使用简明中文。组件说明用一句话写清用途，详细流程留在组件正文；技术名称、命令、字段名和模型名保持原样。
 - 卡片和详情页的关键词标签读取插件 `plugin.json` 的 `keywords`，不将市场条目的 `category` / `tags` 混入其中。
 - 安装步骤由采集脚本根据插件名、市场名自动生成，组件介绍从组件源文件采集；站点使用公共 `PluginInstallation` / `PluginComponents` 模板统一呈现。**插件 README 只维护实际用法、示例与注意事项，不再重复安装命令、组件清单或开发目录树。**
 - README 不执行自动内容删改；新增插件应按以上约定组织文档，现有 demo 已迁移。
@@ -109,10 +110,27 @@ node --test site/scripts/collect-plugins.test.mjs
 
 卡片的“更新于”取该插件 `source` 目录最后一次 Git 提交的 **committer 时间**，代码与文档修改均计入；不使用整个仓库 HEAD 的时间、文件 mtime 或站点构建时间。未提交的本地修改不会改变此日期。
 
-- `scripts/plugin-update-times.mjs` 读取完整 Git 历史，生成以插件名称为键的 UTC ISO 时间映射；页面按浏览器时区显示日期，悬停日期可查看精确时间与时区。
-- 镜像构建由 `scripts/plugin-update-times.sh` 在只读挂载仓库的 Debian Node 容器中采集元数据，通过 `MARKETPLACE_PLUGIN_UPDATED_AT` 构建参数传入；不依赖宿主 Node，不把 `.git` 复制进镜像。
-- 两条 CI 流程均获取完整历史。浅克隆、无 Git 历史或尚无提交记录时，页面明确显示“更新时间不可用”，不填充猜测日期。
-- 本地安装了 Node 时，可运行 `node --test scripts/plugin-update-times.test.mjs` 验证时间采集与容器元数据输入。
+- `scripts/plugin-update-times.mjs` 读取完整 Git 历史。默认输出 UTC ISO 时间映射；`--metadata` 输出每个插件的 `{ updatedAt, status }`，区分 `committed`、`uncommitted` 和 `unavailable`。页面按浏览器时区显示日期，卡片悬停可查看精确时间与时区。
+- 新插件目录尚无 Git 提交时，卡片和详情页显示“尚未提交”，不会使用 mtime 或构建时间补值。只有无完整 Git 历史等确实无法判断的情况，才显示“更新时间不可用”。已有插件的未提交修改不改变其最后提交时间。
+- 本地 `make run` 启动前采集一次，`make build` 构建前重新采集。开发服务运行期间提交了插件后，可执行 `npm run catalog` 更新数据，或重启 `make run`；不把旧的构建快照当作实时 Git 查询。
+- `make build-image` / `make run-image` 通过 `scripts/plugin-update-times.sh` 在只读挂载仓库的 Debian Node 容器中采集时间及状态，再经 `MARKETPLACE_PLUGIN_UPDATED_AT` 构建参数传入；不依赖宿主 Node，不把 `.git` 复制进镜像。已知“尚未提交”状态可以用于本地镜像，未知状态会阻止镜像构建。
+- 直接执行 `docker build` 必须显式传入上述元数据；缺少参数、缺少插件条目或含不可用状态时构建失败，不再生成所有日期为空的镜像。建议使用 Make 入口；有宿主 Node 时，也可用下面的命令构建本地镜像。
+- 两条发布 CI 均获取完整 Git 历史，并要求每个插件有提交时间；本地 `make deploy-workers` 和 `make push-image` 也执行提交时间检查。无历史、浅克隆或新插件尚未提交会阻止发布，不通过伪造日期绕过。
+- 旧的字符串/null 时间映射仍可读取；其中 null 仅表示未知，不能据此推断“尚未提交”，因此不满足镜像的已知状态要求。
+
+在市场仓库根目录运行，命令中的镜像名可按需替换：
+
+```bash
+docker build \
+  --build-arg "MARKETPLACE_PLUGIN_UPDATED_AT=$(node scripts/plugin-update-times.mjs --metadata --require-known)" \
+  -f build/Dockerfile -t maixai-marketplace:local .
+```
+
+本地安装了 Node 时，可运行以下测试，覆盖 Git 时间、未提交状态和无 Git 构建中的元数据透传：
+
+```bash
+node --test scripts/plugin-update-times.test.mjs site/scripts/collect-plugins.test.mjs
+```
 
 ## 构建触发范围
 

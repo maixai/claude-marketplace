@@ -16,9 +16,12 @@ COPY plugins/ ./plugins/
 COPY site/ ./site/
 COPY scripts/plugin-update-times.mjs ./scripts/plugin-update-times.mjs
 
-# 只传递插件时间元数据，不把 Git 历史复制进镜像构建层。
+# Require host-collected Git metadata instead of silently losing dates without .git.
 ARG MARKETPLACE_PLUGIN_UPDATED_AT
-RUN MARKETPLACE_PLUGIN_UPDATED_AT="$MARKETPLACE_PLUGIN_UPDATED_AT" npm run build
+RUN test -n "$MARKETPLACE_PLUGIN_UPDATED_AT" || \
+    (printf '%s\n' 'Missing MARKETPLACE_PLUGIN_UPDATED_AT; use make build-image or supply metadata from scripts/plugin-update-times.mjs --metadata' >&2; exit 1)
+RUN MARKETPLACE_PLUGIN_UPDATED_AT="$MARKETPLACE_PLUGIN_UPDATED_AT" \
+    MARKETPLACE_REQUIRE_KNOWN_UPDATE_TIMES=1 npm run build
 
 # Stage 2: 运行
 FROM nginx:1.31.8-trixie AS runtime

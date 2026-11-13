@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-import { getPluginUpdateTimes } from './plugin-update-times.mjs'
+import { getPluginUpdateMetadata, getPluginUpdateTimes } from './plugin-update-times.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const TIMESTAMP = '2026-11-06T05:28:03.000Z'
@@ -62,6 +62,94 @@ test('rejects missing, malformed, impossible or noncanonical supplied dates', ()
 
 test('rejects a plugin path outside the repository', () => {
   fixture((root) => assert.throws(() => getPluginUpdateTimes(root, '{"example":null}'), /escapes/), './../outside')
+})
+
+test('preserves committed and uncommitted metadata in a Git-free build', () => {
+  fixture((root) => {
+    for (const metadata of [
+      { updatedAt: TIMESTAMP, status: 'committed' },
+      { updatedAt: null, status: 'uncommitted' },
+      { updatedAt: null, status: 'unavailable' },
+    ]) {
+      const supplied = JSON.stringify({ example: metadata })
+      assert.deepEqual(getPluginUpdateMetadata(root, supplied), { example: metadata })
+      assert.deepEqual(getPluginUpdateTimes(root, supplied), { example: metadata.updatedAt })
+    }
+  })
+})
+
+test('does not label missing Git metadata as an uncommitted plugin', () => {
+  fixture((root) => {
+    assert.deepEqual(getPluginUpdateMetadata(root, ''), { example: { updatedAt: null, status: 'unavailable' } })
+    assert.deepEqual(getPluginUpdateMetadata(root, '{"example":null}'), { example: { updatedAt: null, status: 'unavailable' } })
+  })
+})
+
+test('rejects inconsistent status and timestamp pairs', () => {
+  fixture((root) => {
+    for (const metadata of [
+      { updatedAt: null, status: 'committed' },
+      { updatedAt: TIMESTAMP, status: 'uncommitted' },
+      { updatedAt: TIMESTAMP, status: 'unavailable' },
+      { updatedAt: null, status: 'invalid' },
+      { updatedAt: '2026-02-30T00:00:00.000Z', status: 'committed' },
+      {}, [],
+    ]) {
+      assert.throws(() => getPluginUpdateMetadata(root, JSON.stringify({ example: metadata })), /Invalid update/)
+    }
+  })
+})
+
+test('distinguishes new directories from committed files without using mtimes or HEAD time', () => {
+  fixture((root) => {
+    const runGit = (args, env = {}) => execFileSync('git', ['-C', root, ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', ...env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    runGit(['init', '--quiet'])
+    runGit(['config', 'user.name', 'Fixture'])
+    runGit(['config', 'user.email', 'fixture@example.invalid'])
+    writeFileSync(join(root, 'unrelated.txt'), 'Initial commit\n')
+    runGit(['add', '.'])
+    runGit(['commit', '--quiet', '-m', 'Initialize fixture'], {
+      GIT_AUTHOR_DATE: '2026-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2026-01-02T00:00:00Z',
+    })
+    mkdirSync(join(root, 'plugins/example'), { recursive: true })
+    writeFileSync(join(root, 'plugins/example/README.md'), '# Example\n')
+    assert.deepEqual(getPluginUpdateMetadata(root, ''), { example: { updatedAt: null, status: 'uncommitted' } })
+    runGit(['add', 'plugins/example'])
+    runGit(['commit', '--quiet', '-m', 'Add plugin'], {
+      GIT_AUTHOR_DATE: '2026-01-03T00:00:00Z', GIT_COMMITTER_DATE: TIMESTAMP,
+    })
+    writeFileSync(join(root, 'unrelated.txt'), 'New repository HEAD\n')
+    runGit(['add', 'unrelated.txt'])
+    runGit(['commit', '--quiet', '-m', 'Update unrelated file'], {
+      GIT_AUTHOR_DATE: '2026-11-07T00:00:00Z', GIT_COMMITTER_DATE: '2026-11-08T00:00:00Z',
+    })
+    writeFileSync(join(root, 'plugins/example/README.md'), '# Uncommitted modification\n')
+    const metadata = getPluginUpdateMetadata(root, '')
+    assert.deepEqual(metadata, { example: { updatedAt: TIMESTAMP, status: 'committed' } })
+    assert.deepEqual(getPluginUpdateMetadata(root, JSON.stringify(metadata)), metadata)
+  })
+})
+
+test('CLI rejects unknown image metadata and requires committed dates for publishing', () => {
+  fixture((root) => {
+    mkdirSync(join(root, 'scripts'))
+    const script = join(root, 'scripts/plugin-update-times.mjs')
+    writeFileSync(script, readFileSync(join(ROOT, 'scripts/plugin-update-times.mjs')))
+    const invoke = (metadata, mode) => spawnSync(process.execPath, [script, '--metadata', mode], {
+      encoding: 'utf8', env: { ...process.env, MARKETPLACE_PLUGIN_UPDATED_AT: JSON.stringify({ example: metadata }) },
+    })
+    const unknown = invoke(null, '--require-known')
+    assert.equal(unknown.status, 1)
+    assert.match(unknown.stderr, /Required Git update metadata is missing/)
+    const uncommitted = { updatedAt: null, status: 'uncommitted' }
+    assert.equal(invoke(uncommitted, '--require-known').status, 0)
+    assert.equal(invoke(uncommitted, '--require-committed').status, 1)
+    assert.equal(invoke({ updatedAt: TIMESTAMP, status: 'committed' }, '--require-committed').status, 0)
+  })
 })
 
 test('does not report the shallow checkout boundary as a plugin update', () => {

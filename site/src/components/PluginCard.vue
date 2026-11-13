@@ -17,7 +17,10 @@ const emit = defineEmits<{
   'toggle-category': [category: string]
 }>()
 
-const displayName = computed(() => props.plugin.displayName?.trim() || props.plugin.manifest?.displayName?.trim() || '未命名插件')
+const displayName = computed(() => {
+  const label = props.plugin.displayName?.trim() || props.plugin.manifest?.displayName?.trim()
+  return label && label !== props.plugin.name ? label : null
+})
 const description = computed(() => props.plugin.description ?? props.plugin.manifest?.description ?? '暂无描述。')
 const category = computed(() => props.plugin.category?.trim() || '未分类')
 const isCategorySelected = computed(() => props.selectedCategories.includes(category.value))
@@ -37,15 +40,22 @@ const updatedDate = computed(() => {
 
 <template>
   <article class="plugin-card">
-    <div class="card-heading">
+    <header class="card-heading">
       <h2 class="card-title">
-        <RouterLink class="card-link" :to="{ name: 'plugin', params: { name: plugin.name } }">{{ displayName }}</RouterLink>
+        <RouterLink
+          class="card-link"
+          :to="{ name: 'plugin', params: { name: plugin.name } }"
+          :aria-describedby="displayName ? `card-display-name-${plugin.name}` : undefined"
+        >{{ plugin.name }}</RouterLink>
       </h2>
-      <span v-if="version" class="version">v{{ version }}</span>
       <span class="card-arrow" aria-hidden="true">
         <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
       </span>
-    </div>
+      <div v-if="displayName || version" class="card-subtitle-row">
+        <p v-if="displayName" :id="`card-display-name-${plugin.name}`" class="card-display-name">{{ displayName }}</p>
+        <span v-if="version" class="version">v{{ version }}</span>
+      </div>
+    </header>
     <p class="card-description">{{ description }}</p>
     <PluginKeywords :keywords="plugin.manifest?.keywords ?? []" />
     <p class="card-updated">
@@ -56,6 +66,7 @@ const updatedDate = computed(() => {
             {{ dateFormat.format(updatedDate) }}
           </time>
         </template>
+        <template v-else-if="plugin.hasCommitHistory === false">尚未提交</template>
         <template v-else>更新时间不可用</template>
       </span>
       <span class="card-flags">

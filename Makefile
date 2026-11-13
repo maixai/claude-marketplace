@@ -71,6 +71,7 @@ preview-workers: install ## 以 Workers 运行时本地预览
 
 deploy-workers: install ## 构建并部署到 Cloudflare Workers
 	npm run check:headers
+	node scripts/plugin-update-times.mjs --require-committed >/dev/null
 	npm run build
 	npm run deploy:workers
 
@@ -82,6 +83,7 @@ build-image: ## 构建 Docker 镜像
 	@echo ">> image built: $(IMAGE):$(IMAGE_TAG)"
 
 push-image: build-image ## 推送镜像（主干分支同时推 latest）
+	@bash scripts/plugin-update-times.sh --require-committed >/dev/null
 	docker push $(IMAGE):$(IMAGE_TAG)
 	@if [ "$(PUSH_LATEST)" = "1" ]; then docker push $(IMAGE):latest; fi
 	@echo ">> pushed: $(IMAGE):$(IMAGE_TAG)"

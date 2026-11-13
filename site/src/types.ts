@@ -55,6 +55,7 @@ export type PluginSource = string | { source: string; [key: string]: unknown }
 
 export interface MarketplacePluginEntry {
   updatedAt: string | null
+  hasCommitHistory: boolean | null
   name: string
   source: PluginSource
   description?: string

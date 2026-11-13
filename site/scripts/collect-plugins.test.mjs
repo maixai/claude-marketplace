@@ -149,10 +149,14 @@ async function prepareCliFixture(root) {
 
 const marketplace = JSON.stringify({ name: 'fixture-market', owner: { name: 'Fixture' }, plugins: [{ name: 'example', source: './plugins/example' }] })
 
-function runCollector(root) {
+function runCollector(root, metadata = '{"example":null}', requireKnown = false) {
   return spawnSync(process.execPath, [join(root, 'site/scripts/collect-plugins.ts')], {
     encoding: 'utf8',
-    env: { ...process.env, MARKETPLACE_PLUGIN_UPDATED_AT: '{"example":null}' },
+    env: {
+      ...process.env,
+      MARKETPLACE_PLUGIN_UPDATED_AT: metadata,
+      MARKETPLACE_REQUIRE_KNOWN_UPDATE_TIMES: requireKnown ? '1' : '0',
+    },
   })
 }
 
@@ -185,5 +189,40 @@ test('CLI generates component descriptions and installation without README dupli
     assert.equal(plugin.installation[1].command, 'claude plugin install example@fixture-market')
     assert.match(plugin.readmeHtml, /Run the skill/)
     assert.doesNotMatch(plugin.readmeHtml, /claude plugin install/)
+    assert.equal(plugin.updatedAt, null)
+    assert.equal(plugin.hasCommitHistory, null)
+  })
+})
+
+test('CLI preserves Git dates and distinguishes uncommitted plugins in Git-free builds', async () => {
+  await fixture({
+    '.claude-plugin/marketplace.json': marketplace,
+    'plugins/example/README.md': '# Example\n',
+  }, async (root) => {
+    await prepareCliFixture(root)
+    for (const metadata of [
+      { updatedAt: '2026-11-06T05:28:03.000Z', status: 'committed' },
+      { updatedAt: null, status: 'uncommitted' },
+    ]) {
+      const result = runCollector(root, JSON.stringify({ example: metadata }), true)
+      assert.equal(result.status, 0, result.stderr)
+      const catalog = JSON.parse(await readFile(join(root, 'site/src/generated/catalog.json'), 'utf8'))
+      assert.equal(catalog.plugins[0].updatedAt, metadata.updatedAt)
+      assert.equal(catalog.plugins[0].hasCommitHistory, metadata.status === 'committed')
+    }
+  })
+})
+
+test('CLI rejects unavailable required update metadata without overwriting the catalog', async () => {
+  await fixture({
+    '.claude-plugin/marketplace.json': marketplace,
+    'plugins/example/README.md': '# Example\n',
+    'site/src/generated/catalog.json': 'sentinel',
+  }, async (root) => {
+    await prepareCliFixture(root)
+    const result = runCollector(root, '{"example":null}', true)
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /Required Git update metadata is missing/)
+    assert.equal(await readFile(join(root, 'site/src/generated/catalog.json'), 'utf8'), 'sentinel')
   })
 })

@@ -1,6 +1,8 @@
 /* 插件详情：概览与安装同处一块面板，用发丝线分栏；正文用标题层级与留白组织。 */
 .plugin-detail {
   --plugin-install-min-width: 360px;
+  --plugin-example-max-width: 48rem;
+  --plugin-table-max-width: 64rem;
   --plugin-section-gap: calc(var(--dl-space-12) + var(--dl-space-4));
   --copy-beam-duration: calc(var(--dl-duration-fast) * 5);
   --copy-shake-duration: calc(var(--dl-duration-fast) * 2.5);
@@ -329,7 +331,8 @@
 .plugin-detail .component-model dd { margin: 0; color: var(--dl-text-secondary); font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); }
 .plugin-detail .component-model dd.component-model-unset { color: var(--dl-text-tertiary); font-family: var(--dl-font-sans); }
 
-.plugin-detail .prose { max-width: var(--dl-measure); overflow-wrap: anywhere; color: var(--dl-text-secondary); }
+/* Keep the document wide while sizing examples and tables independently. */
+.plugin-detail .prose { width: 100%; max-width: none; min-width: 0; overflow-wrap: anywhere; color: var(--dl-text-secondary); }
 .plugin-detail .prose > :first-child { margin-block-start: 0; }
 .plugin-detail .prose > :last-child { margin-block-end: 0; }
 .plugin-detail .prose h3, .plugin-detail .prose h4, .plugin-detail .prose h5, .plugin-detail .prose h6 { margin-block: var(--dl-space-6) var(--dl-space-3); color: var(--dl-text-primary); font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); }
@@ -338,17 +341,53 @@
 .plugin-detail .prose li + li { margin-block-start: var(--dl-space-3); }
 .plugin-detail .prose a { text-decoration: underline; text-underline-offset: var(--dl-space-1); }
 .plugin-detail .prose code { padding: var(--dl-border-width) var(--dl-space-1); border-radius: var(--dl-radius-sm); background: var(--dl-bg-sunken); color: var(--dl-text-primary); }
-.plugin-detail .prose pre { max-width: 100%; overflow-x: auto; margin-block: var(--dl-space-4); padding: var(--dl-space-4); border: var(--dl-border-width) solid var(--dl-border-base); border-radius: var(--dl-radius-md); background: var(--dl-bg-elevated); text-autospace: no-autospace; }
-.plugin-detail .prose pre code { padding: 0; border-radius: 0; background: transparent; }
-.plugin-detail .prose blockquote { margin-inline: 0; padding-inline-start: var(--dl-space-4); border-inline-start: var(--dl-space-1) solid var(--dl-border-base); }
-.plugin-detail .prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+/* A shared bounded width aligns every example without stretching across the page. */
+.plugin-detail .prose .prose-code-panel {
+  width: 100%;
+  max-width: var(--plugin-example-max-width);
+  min-width: 0;
+  margin: var(--dl-space-4) 0;
+  border: var(--dl-border-width) solid color-mix(in srgb, var(--dl-accent) 24%, var(--dl-border-base));
+  border-radius: var(--dl-radius-lg);
+  background: var(--dl-bg-elevated);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--dl-text-primary) 6%, transparent);
+  overflow: hidden;
+}
+.plugin-detail .prose-code-panel:focus-within { border-color: var(--dl-accent); }
+.plugin-detail .prose-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--dl-space-2) var(--dl-space-4);
+  min-height: var(--dl-control-height);
+  padding: var(--dl-space-2) var(--dl-space-4);
+  border-block-end: var(--dl-border-width) solid var(--dl-border-base);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--dl-accent) 7%, var(--dl-bg-raised)), var(--dl-bg-raised));
+  color: var(--dl-text-secondary);
+  font-family: var(--dl-font-mono);
+  font-size: var(--dl-font-size-xs);
+  line-height: var(--dl-line-snug);
+}
+.plugin-detail .prose-code-kind { display: inline-flex; align-items: center; gap: var(--dl-space-3); min-width: 0; letter-spacing: var(--dl-tracking-caps); overflow-wrap: anywhere; }
+.plugin-detail .prose-code-symbol { flex: none; color: var(--dl-accent); }
+.plugin-detail .prose-code-sequence { flex: none; margin-inline-start: auto; color: var(--dl-text-tertiary); }
+.plugin-detail .prose pre { width: 100%; max-width: var(--plugin-example-max-width); min-width: 0; overflow-x: auto; margin-block: var(--dl-space-4); padding: var(--dl-space-4); border: var(--dl-border-width) solid var(--dl-border-base); border-radius: var(--dl-radius-md); background: var(--dl-bg-elevated); text-autospace: no-autospace; }
+.plugin-detail .prose .prose-code-panel pre { max-width: 100%; margin: 0; border: 0; border-radius: 0; background: transparent; }
+.plugin-detail .prose .prose-code-panel pre:focus-visible { outline: none; box-shadow: inset 0 0 0 calc(var(--dl-border-width) * 2) var(--dl-accent); }
+.plugin-detail .prose pre code { display: block; padding: 0; border-radius: 0; background: transparent; }
+/* Plain-text prompts should reflow; source code keeps its meaningful line breaks. */
+.plugin-detail .prose pre code:is(.language-text, .language-plaintext) { white-space: pre-wrap; overflow-wrap: anywhere; }
+.plugin-detail .prose blockquote { width: 100%; max-width: var(--plugin-example-max-width); margin-inline: 0; padding-inline-start: var(--dl-space-4); border-inline-start: var(--dl-space-1) solid var(--dl-border-base); }
+.plugin-detail .prose-table-wrap { width: fit-content; max-width: min(100%, var(--plugin-table-max-width)); overflow-x: auto; margin-block: var(--dl-space-4); }
+.plugin-detail .prose table { width: auto; border-collapse: collapse; }
 .plugin-detail .prose th, .plugin-detail .prose td { padding: var(--dl-space-2) var(--dl-space-3); border: var(--dl-border-width) solid var(--dl-border-base); text-align: left; }
 .plugin-detail .prose img, .plugin-detail .prose video { max-width: 100%; height: auto; }
 .plugin-detail .prose hr { margin-block: var(--dl-space-6); border: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
 .plugin-detail .plugin-configuration { margin-block-start: var(--dl-space-6); }
 .plugin-detail .plugin-subheading { margin: 0 0 var(--dl-space-3); font-size: var(--dl-font-size-md); }
-.plugin-detail .table-wrap { overflow-x: auto; }
-.plugin-detail .config-table { width: 100%; border-collapse: collapse; font-size: var(--dl-font-size-sm); }
+.plugin-detail .table-wrap { width: fit-content; max-width: min(100%, var(--plugin-table-max-width)); overflow-x: auto; }
+.plugin-detail .config-table { width: auto; border-collapse: collapse; font-size: var(--dl-font-size-sm); }
 .plugin-detail .config-table th, .plugin-detail .config-table td { padding: var(--dl-space-3); border-block-end: var(--dl-border-width) solid var(--dl-border-base); text-align: left; vertical-align: top; }
 .plugin-detail .config-table th { color: var(--dl-text-secondary); font-weight: var(--dl-weight-medium); white-space: nowrap; }
 .plugin-detail .required-label { color: var(--dl-highlight); }

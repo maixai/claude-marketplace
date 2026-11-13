@@ -1,0 +1,21 @@
+{
+  "name": "extension-builder",
+  "displayName": "扩展构建助手",
+  "description": "创建和维护 Claude Code 组件与 maixai 市场插件，先确认方案再实施。",
+  "version": "0.1.0",
+  "author": {
+    "name": "ZACHARY ZHAO"
+  },
+  "homepage": "https://github.com/maixai/claude-marketplace/tree/main/plugins/extension-builder",
+  "repository": "https://github.com/maixai/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["开发工具", "技能", "子代理", "插件", "评审", "维护"],
+  "userConfig": {
+    "docs_base_dir": {
+      "type": "string",
+      "title": "文档保存目录",
+      "description": "默认 documents，相对任务开始目录。仅保存过程文档，不改变组件位置或授予写入权限。",
+      "default": "documents"
+    }
+  }
+}

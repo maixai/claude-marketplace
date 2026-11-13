@@ -1,6 +1,6 @@
 ---
 name: plugin-reviewer
-description: 独立复核 Claude Code 插件的目录结构、清单一致性与组件合法性，输出分级问题清单。在新建或修改插件后使用。
+description: 新建或修改插件后，独立检查目录、清单与组件，只报告问题，不修改文件。
 model: sonnet
 tools: Read, Grep, Glob
 ---

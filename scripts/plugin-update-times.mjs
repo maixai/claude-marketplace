@@ -28,13 +28,31 @@ function readPlugins(root) {
   })
 }
 
-/**
- * 构建期取插件目录的最后提交时间；容器可接收宿主生成的同一份数据。
- * @param {string} root
- * @param {string | undefined} supplied
- * @returns {Record<string, string | null>}
- */
-export function getPluginUpdateTimes(root = REPO_ROOT, supplied = process.env.MARKETPLACE_PLUGIN_UPDATED_AT) {
+function isCanonicalTimestamp(value) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value
+}
+
+function parseMetadata(name, value) {
+  // Retain compatibility with timestamp-only build arguments without inventing a reason for null.
+  if (value === null) return { updatedAt: null, status: 'unavailable' }
+  if (typeof value === 'string') {
+    if (!isCanonicalTimestamp(value)) throw new Error(`Invalid canonical UTC timestamp for ${name}`)
+    return { updatedAt: value, status: 'committed' }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`Invalid update metadata for ${name}`)
+  }
+  if (value.status === 'committed' && isCanonicalTimestamp(value.updatedAt)) {
+    return { updatedAt: value.updatedAt, status: value.status }
+  }
+  if ((value.status === 'uncommitted' || value.status === 'unavailable') && value.updatedAt === null) {
+    return { updatedAt: null, status: value.status }
+  }
+  throw new Error(`Invalid update status or timestamp for ${name}`)
+}
+
+/** Read directory commit times and preserve why a timestamp is absent across builds. */
+export function getPluginUpdateMetadata(root = REPO_ROOT, supplied = process.env.MARKETPLACE_PLUGIN_UPDATED_AT) {
   const plugins = readPlugins(root)
   if (supplied) {
     const values = JSON.parse(supplied)
@@ -43,15 +61,11 @@ export function getPluginUpdateTimes(root = REPO_ROOT, supplied = process.env.MA
     }
     return Object.fromEntries(plugins.map(({ name }) => {
       if (!Object.hasOwn(values, name)) throw new Error(`Missing update metadata for ${name}`)
-      const value = values[name]
-      if (value !== null && (typeof value !== 'string' || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value)) {
-        throw new Error(`Invalid canonical UTC timestamp for ${name}`)
-      }
-      return [name, value]
+      return [name, parseMetadata(name, values[name])]
     }))
   }
 
-  // 不从父仓库取时间，也不将浅克隆的边界提交误认为插件更新。
+  // Never use a parent repository or mistake a shallow boundary for the last update.
   try {
     if (resolve(git(root, ['rev-parse', '--show-toplevel'])) !== resolve(root)) {
       throw new Error('Plugin repository has no independent Git history')
@@ -62,19 +76,35 @@ export function getPluginUpdateTimes(root = REPO_ROOT, supplied = process.env.MA
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.warn(`[catalog] Update dates unavailable: ${message}`)
-    return Object.fromEntries(plugins.map(({ name }) => [name, null]))
+    return Object.fromEntries(plugins.map(({ name }) => [name, { updatedAt: null, status: 'unavailable' }]))
   }
 
   return Object.fromEntries(plugins.map(({ name, path }) => {
-    // 未提交的新插件没有历史记录，返回 null，而非文件 mtime 或构建时间。
     const timestamp = git(root, ['log', '-1', '--format=%cI', '--', path || '.'])
-    return [name, timestamp ? new Date(timestamp).toISOString() : null]
+    return [name, timestamp
+      ? { updatedAt: new Date(timestamp).toISOString(), status: 'committed' }
+      : { updatedAt: null, status: 'uncommitted' }]
   }))
+}
+
+/** Preserve the existing timestamp-only API for consumers that do not display status. */
+export function getPluginUpdateTimes(root = REPO_ROOT, supplied = process.env.MARKETPLACE_PLUGIN_UPDATED_AT) {
+  return Object.fromEntries(Object.entries(getPluginUpdateMetadata(root, supplied)).map(([name, value]) => [name, value.updatedAt]))
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    process.stdout.write(`${JSON.stringify(getPluginUpdateTimes())}\n`)
+    const metadata = getPluginUpdateMetadata()
+    if (process.argv.includes('--require-committed') || process.argv.includes('--require-known')) {
+      const missing = Object.entries(metadata).filter(([, value]) => process.argv.includes('--require-committed')
+        ? value.status !== 'committed'
+        : value.status === 'unavailable')
+      if (missing.length) throw new Error(`Required Git update metadata is missing: ${missing.map(([name, value]) => `${name} (${value.status})`).join(', ')}`)
+    }
+    const output = process.argv.includes('--metadata')
+      ? metadata
+      : Object.fromEntries(Object.entries(metadata).map(([name, value]) => [name, value.updatedAt]))
+    process.stdout.write(`${JSON.stringify(output)}\n`)
   } catch (error) {
     console.error(`[catalog] ${error instanceof Error ? error.message : String(error)}`)
     process.exitCode = 1
