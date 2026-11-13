@@ -6,13 +6,6 @@
   },
   "plugins": [
     {
-      "name": "demo-plugin",
-      "source": "./plugins/demo-plugin",
-      "description": "演示插件结构、组件展示和安装流程。",
-      "category": "示例",
-      "tags": ["示例", "技能", "子代理"]
-    },
-    {
       "name": "extension-builder",
       "source": "./plugins/extension-builder",
       "description": "创建和维护 Claude Code 组件与 maixai 市场插件，先确认方案再实施。",
