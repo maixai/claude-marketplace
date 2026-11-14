@@ -8,9 +8,16 @@
     {
       "name": "extension-builder",
       "source": "./plugins/extension-builder",
-      "description": "创建和维护 Claude Code 组件与 maixai 市场插件，先确认方案再实施。",
+      "description": "创建和维护 Claude Code 扩展组件及 maixai 市场插件。",
       "category": "开发工具",
       "tags": ["开发", "技能", "插件", "评审"]
+    },
+    {
+      "name": "maixdev",
+      "source": "./plugins/maixdev",
+      "description": "Maixai 用于构建产品的软件开发 Harness",
+      "category": "开发工具",
+      "tags": ["开发", "测试先行", "验收", "审查"]
     }
   ]
 }

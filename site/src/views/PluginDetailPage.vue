@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import PluginComponents from '../components/PluginComponents.vue'
@@ -9,6 +9,7 @@ import catalog from '../generated/catalog.json'
 import type { MarketplaceCatalog, MarketplacePluginEntry } from '../types'
 
 const props = defineProps<{ name: string }>()
+const componentList = ref<InstanceType<typeof PluginComponents> | null>(null)
 const data: MarketplaceCatalog = catalog
 const repository = 'maixai/claude-marketplace'
 const plugin = computed<MarketplacePluginEntry | null>(
@@ -36,7 +37,9 @@ function sourceUrl(entry: MarketplacePluginEntry): string {
 }
 
 function userConfigEntries(entry: MarketplacePluginEntry) {
-  return Object.entries(entry.manifest?.userConfig ?? {})
+  return Object.entries(entry.manifest?.userConfig ?? {}).sort(
+    ([, left], [, right]) => Number(right.required === true) - Number(left.required === true),
+  )
 }
 
 const dateFormat = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -162,9 +165,14 @@ const readmeHtml = computed(() => {
             <dt>分类</dt>
             <dd>{{ plugin.category || '—' }}</dd>
           </div>
-          <div class="plugin-spec-row">
+          <div class="plugin-spec-row plugin-spec-row--components">
             <dt>组件</dt>
-            <dd>{{ componentSummary }}</dd>
+            <dd>
+              <a class="plugin-components-link" href="#components-heading" aria-label="跳转到包含组件" @click.prevent="componentList?.scrollToHeading()">
+                {{ componentSummary }}
+                <span aria-hidden="true">↓</span>
+              </a>
+            </dd>
           </div>
           <div class="plugin-spec-row">
             <dt>更新</dt>
@@ -183,17 +191,22 @@ const readmeHtml = computed(() => {
     </section>
 
     <div class="plugin-body">
-      <section class="plugin-document" aria-labelledby="readme-heading">
-        <h2 id="readme-heading" class="plugin-section-title">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6" /></svg>
-          使用说明
-        </h2>
-        <!-- 内容已经在构建期禁用原始 HTML，此处仅呈现去重后的阅读层级。 -->
-        <div v-if="readmeHtml" class="prose" v-html="readmeHtml"></div>
-        <p v-else class="section-note">暂无额外使用说明，请参考下方组件介绍。</p>
+      <div class="plugin-reading">
+        <section class="plugin-document" aria-labelledby="readme-heading">
+          <h2 id="readme-heading" class="plugin-section-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6" /></svg>
+            使用说明
+          </h2>
+          <!-- Raw HTML is disabled at build time; this layer only normalizes the reading hierarchy. -->
+          <div v-if="readmeHtml" class="prose" v-html="readmeHtml"></div>
+          <p v-else class="section-note">暂无额外使用说明，请参考组件介绍。</p>
+        </section>
 
         <section v-if="userConfigEntries(plugin).length > 0" class="plugin-configuration" aria-labelledby="config-heading">
-          <h3 id="config-heading" class="plugin-subheading">配置项</h3>
+          <h2 id="config-heading" class="plugin-section-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h8m4 0h4M4 17h4m4 0h8" /><circle cx="14" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>
+            配置项
+          </h2>
           <div class="table-wrap" tabindex="0" role="region" aria-label="插件配置项，可横向滚动">
             <table class="config-table">
               <thead><tr><th scope="col">名称</th><th scope="col">类型</th><th scope="col">必填</th><th scope="col">说明</th></tr></thead>
@@ -208,9 +221,9 @@ const readmeHtml = computed(() => {
             </table>
           </div>
         </section>
-      </section>
+      </div>
 
-      <PluginComponents :components="plugin.components" />
+      <PluginComponents :key="plugin.name" ref="componentList" class="plugin-component-pane" :components="plugin.components" />
     </div>
   </article>
 

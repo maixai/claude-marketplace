@@ -1,6 +1,7 @@
 /* 插件详情：概览与安装同处一块面板，用发丝线分栏；正文用标题层级与留白组织。 */
 .plugin-detail {
   --plugin-install-min-width: 360px;
+  --plugin-column-tracks: minmax(0, 3fr) minmax(var(--plugin-install-min-width), 2fr);
   --plugin-example-max-width: 48rem;
   --plugin-table-max-width: 64rem;
   --plugin-section-gap: calc(var(--dl-space-12) + var(--dl-space-4));
@@ -27,7 +28,7 @@
 /* 单一面板承载身份与安装，内部以 1px 发丝线分栏，避免两个独立圆角框互相错位。 */
 .plugin-detail .plugin-hero {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(var(--plugin-install-min-width), 2fr);
+  grid-template-columns: var(--plugin-column-tracks);
   border: var(--dl-border-width) solid var(--dl-border-base);
   border-radius: var(--dl-radius-xl);
   background: var(--dl-bg-elevated);
@@ -98,6 +99,13 @@
 }
 .plugin-detail .plugin-spec dt { color: var(--dl-text-tertiary); font-size: var(--dl-font-size-xs); letter-spacing: var(--dl-tracking-caps); }
 .plugin-detail .plugin-spec dd { min-width: 0; margin: 0; color: var(--dl-text-secondary); font-size: var(--dl-font-size-sm); overflow-wrap: anywhere; }
+/* Stretch the link over its statistic row while keeping a native keyboard target. */
+.plugin-detail .plugin-spec-row--components { position: relative; border-radius: var(--dl-radius-sm); }
+.plugin-detail .plugin-components-link { color: inherit; }
+.plugin-detail .plugin-components-link::after { content: ''; position: absolute; inset: 0; }
+.plugin-detail .plugin-components-link > span { margin-inline-start: var(--dl-space-1); color: var(--dl-accent); }
+.plugin-detail .plugin-spec-row--components:hover { background: var(--dl-bg-raised); }
+.plugin-detail .plugin-spec-row--components:hover .plugin-components-link { color: var(--dl-accent); }
 .plugin-detail .plugin-identity .keyword-list { gap: var(--dl-space-1) var(--dl-space-3); margin-block-start: auto; padding-block-start: var(--dl-space-6); }
 .plugin-detail .plugin-identity .keyword-tag { padding: 0; border: 0; border-radius: 0; background: transparent; }
 .plugin-detail .plugin-identity .keyword-tag + .keyword-tag::before { content: '·'; margin-inline-end: var(--dl-space-3); color: var(--dl-text-tertiary); }
@@ -245,58 +253,44 @@
   .copy-toast { inset-inline: var(--dl-space-4); inset-block-start: calc(var(--market-header-height) + var(--dl-space-4)); inset-block-end: auto; max-width: none; }
 }
 
-/* 正文单列：使用说明在前，包含组件作为可折叠区块在后。 */
+/* Keep primary reading and supporting inventory in one page-level scroll context. */
 .plugin-detail .plugin-body {
+  display: grid;
+  grid-template-columns: var(--plugin-column-tracks);
+  align-items: start;
+  gap: 0;
+  min-width: 0;
+  margin-block-start: var(--dl-space-12);
+  /* Match the hero's inner width so the two right-hand panels share gridlines. */
+  padding-inline: var(--dl-border-width);
+}
+.plugin-detail .plugin-reading {
   display: flex;
   flex-direction: column;
   gap: var(--plugin-section-gap);
   min-width: 0;
-  margin-block-start: var(--dl-space-12);
+  padding-block-start: var(--dl-space-6);
+  padding-inline-end: var(--dl-space-12);
 }
 .plugin-detail .plugin-document { min-width: 0; }
-/* 包含组件标题行是 disclosure 控件：整行可点，chevron 指示状态。 */
-.plugin-detail .components-toggle {
-  display: flex;
-  width: 100%;
-  min-height: var(--dl-target-size);
-  align-items: center;
-  gap: var(--dl-space-3);
-  padding: 0;
-  border: 0;
-  border-radius: var(--dl-radius-sm);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
+/* Typography and proximity group the inventory without a second visual container. */
+.plugin-detail .plugin-component-pane {
+  align-self: stretch;
+  min-width: 0;
+  padding: var(--dl-space-6) var(--dl-space-8);
+  border-inline-start: var(--dl-border-width) solid color-mix(in srgb, var(--dl-border-base) 65%, transparent);
 }
-.plugin-detail .components-toggle:focus-visible { outline: none; box-shadow: var(--dl-focus-ring); }
-.plugin-detail .components-toggle-icon { color: var(--dl-text-secondary); }
-.plugin-detail .components-toggle-label { min-width: 0; }
-.plugin-detail .components-toggle .count { margin-inline-start: 0; }
-.plugin-detail .components-toggle-indicator {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: var(--dl-space-8);
-  height: var(--dl-space-8);
-  border-radius: var(--dl-radius-pill);
-  color: var(--dl-text-secondary);
-  transition: background-color var(--dl-duration-fast) var(--dl-ease-out), color var(--dl-duration-fast) var(--dl-ease-out), box-shadow var(--dl-duration-fast) var(--dl-ease-out);
-}
-.plugin-detail .components-toggle:hover .components-toggle-indicator {
-  background: var(--dl-bg-raised);
-  color: var(--dl-accent);
-  box-shadow: inset 0 0 0 var(--dl-border-width) color-mix(in srgb, var(--dl-accent) 24%, transparent);
-}
-.plugin-detail .components-toggle.is-expanded .components-toggle-indicator { color: var(--dl-accent); }
-.plugin-detail .components-toggle-chevron { width: var(--dl-icon-md); height: var(--dl-icon-md); transition: transform var(--dl-duration-base) var(--dl-ease-out); }
-.plugin-detail .components-toggle.is-expanded .components-toggle-chevron { transform: rotate(180deg); }
+.plugin-detail .plugin-component-pane .plugin-section-title { margin-block-end: 0; }
+.plugin-detail .plugin-component-pane .components-content { padding-block-start: var(--dl-space-6); }
+.plugin-detail .plugin-component-pane .plugin-section-title > .icon { color: var(--dl-accent); }
+.plugin-detail .plugin-component-pane .component-groups { display: flex; flex-direction: column; gap: var(--dl-space-6); }
+.plugin-detail .plugin-component-pane .component-group + .component-group { padding-block-start: var(--dl-space-6); }
+.plugin-detail .plugin-component-pane .component-group-heading { margin-block-end: var(--dl-space-4); }
+.plugin-detail .plugin-component-pane .component-group-index { color: var(--dl-accent); }
+.plugin-detail .plugin-component-pane .component-list { gap: var(--dl-space-6); }
+.plugin-detail .plugin-component-pane .component-description { font-size: var(--dl-font-size-md); }
+.plugin-detail .plugin-component-pane .component-model { gap: var(--dl-space-1) var(--dl-space-4); margin-block-start: var(--dl-space-2); }
 .plugin-detail .components-content { min-width: 0; }
-.plugin-detail .components-reveal-enter-active { transition: opacity var(--dl-duration-base) var(--dl-ease-out); }
-.plugin-detail .components-reveal-leave-active { transition: opacity var(--dl-duration-fast) var(--dl-ease-standard); }
-.plugin-detail .components-reveal-enter-from, .plugin-detail .components-reveal-leave-to { opacity: 0; }
 .plugin-detail .plugin-section-title {
   display: flex;
   align-items: center;
@@ -307,6 +301,7 @@
   font-weight: var(--dl-weight-strong);
 }
 
+.plugin-detail #components-heading { scroll-margin-block-start: calc(var(--market-header-height) + var(--dl-space-6)); }
 .plugin-detail .plugin-section-title > .icon { color: var(--dl-text-secondary); }
 .plugin-detail .plugin-section-title > .count { margin-inline-start: 0; }
 
@@ -316,8 +311,6 @@
 .plugin-detail .component-group-heading { display: flex; align-items: center; gap: var(--dl-space-3); margin-block-end: var(--dl-space-6); }
 .plugin-detail .component-group-index { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
 .plugin-detail .component-group-title { flex: none; margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-strong); }
-.plugin-detail .component-group-rule { flex: none; width: var(--dl-space-12); height: var(--dl-border-width); background: var(--dl-border-base); }
-.plugin-detail .component-group-count { flex: none; font-family: var(--dl-font-mono); font-size: var(--dl-font-size-xs); color: var(--dl-text-tertiary); }
 .plugin-detail .component-list { display: flex; flex-direction: column; gap: var(--dl-space-8); margin: 0; padding: 0; list-style: none; }
 .plugin-detail .component-entry { min-width: 0; overflow-wrap: anywhere; }
 .plugin-detail .component-name { margin: 0; font-size: var(--dl-font-size-md); line-height: var(--dl-line-snug); font-weight: var(--dl-weight-medium); }
@@ -384,17 +377,19 @@
 .plugin-detail .prose th, .plugin-detail .prose td { padding: var(--dl-space-2) var(--dl-space-3); border: var(--dl-border-width) solid var(--dl-border-base); text-align: left; }
 .plugin-detail .prose img, .plugin-detail .prose video { max-width: 100%; height: auto; }
 .plugin-detail .prose hr { margin-block: var(--dl-space-6); border: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
-.plugin-detail .plugin-configuration { margin-block-start: var(--dl-space-6); }
-.plugin-detail .plugin-subheading { margin: 0 0 var(--dl-space-3); font-size: var(--dl-font-size-md); }
+.plugin-detail .plugin-configuration { min-width: 0; }
 .plugin-detail .table-wrap { width: fit-content; max-width: min(100%, var(--plugin-table-max-width)); overflow-x: auto; }
 .plugin-detail .config-table { width: auto; border-collapse: collapse; font-size: var(--dl-font-size-sm); }
 .plugin-detail .config-table th, .plugin-detail .config-table td { padding: var(--dl-space-3); border-block-end: var(--dl-border-width) solid var(--dl-border-base); text-align: left; vertical-align: top; }
-.plugin-detail .config-table th { color: var(--dl-text-secondary); font-weight: var(--dl-weight-medium); white-space: nowrap; }
+.plugin-detail .config-table th { color: var(--dl-text-secondary); font-weight: var(--dl-weight-medium); white-space: nowrap; text-align: center; }
 .plugin-detail .required-label { color: var(--dl-highlight); }
 
 @media (max-width: 1023px) {
   .plugin-detail .plugin-hero { grid-template-columns: minmax(0, 1fr); }
   .plugin-detail .plugin-installation { border-inline-start: 0; border-block-start: var(--dl-border-width) solid var(--dl-border-base); }
+  .plugin-detail .plugin-body { grid-template-columns: minmax(0, 1fr); gap: var(--plugin-section-gap); padding-inline: 0; }
+  .plugin-detail .plugin-reading, .plugin-detail .plugin-component-pane { padding: 0; }
+  .plugin-detail .plugin-component-pane { border-inline-start: 0; }
 }
 @media (max-width: 600px) {
   .plugin-detail { --plugin-section-gap: var(--dl-space-12); }

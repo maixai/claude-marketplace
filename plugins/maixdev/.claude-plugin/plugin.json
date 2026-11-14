@@ -1,0 +1,30 @@
+{
+  "name": "maixdev",
+  "displayName": "MaixDev",
+  "description": "Maixai 用于构建产品的软件开发 Harness",
+  "version": "0.1.0",
+  "license": "MIT",
+  "keywords": ["软件开发", "测试先行", "验收", "代码审查"],
+  "userConfig": {
+    "docs_base_dir": {
+      "type": "string",
+      "title": "开发文档目录",
+      "description": "默认 documents，相对任务开始时确认的工作目录解析；任务开始后固定绝对路径，不因恢复或切换目录改变。",
+      "default": "documents"
+    },
+    "context7_api_key": {
+      "type": "string",
+      "title": "Context7 API Key",
+      "description": "用于 Context7 文档检索的 API Key，仅用于 MCP 请求头认证。",
+      "required": true,
+      "sensitive": true
+    },
+    "tavily_api_key": {
+      "type": "string",
+      "title": "Tavily API Key",
+      "description": "用于 Tavily 搜索与正文提取的 API Key，仅用于 MCP 请求头认证。",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}

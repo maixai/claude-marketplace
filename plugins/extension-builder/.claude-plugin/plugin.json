@@ -1,7 +1,7 @@
 {
   "name": "extension-builder",
   "displayName": "扩展构建助手",
-  "description": "创建和维护 Claude Code 组件与 maixai 市场插件，先确认方案再实施。",
+  "description": "创建和维护 Claude Code 扩展组件及 maixai 市场插件。",
   "version": "0.1.0",
   "author": {
     "name": "ZACHARY ZHAO"
