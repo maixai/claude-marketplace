@@ -35,8 +35,11 @@ watch(() => route.path, () => main.value?.focus(), { flush: 'post' })
     <header class="site-header">
       <div class="container header-inner">
         <RouterLink class="brand" to="/" aria-label="Maixai Marketplace 首页">
-          <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <path d="M6 24V8l10 10L26 8v16M6 16l10 10 10-10" />
+          <svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <g fill="currentColor" stroke="none">
+              <path d="M5 26C13 23 21 29 26.4 42C31 26 39 14 57 8.5C64 7 55 10 52 17C49 23 49 29 46.2 33C49 29.5 50 33.5 48 34C44 34.5 44 37 37.7 39.7C43 39 46 43 45 49C44 53 46 54 47.5 55.5C38 55 30 48 36.2 32.8C32 34 28 40 26.2 46.3C24 39 20 35 17.4 33C21 44 17 48 8.5 51.2C13 48 6 41 16.2 39.7C9 37 12 30 5 26Z" />
+              <path d="M48.5 32C49.3 28.6 52 25 53.4 25.3C55 25.3 54 26.3 53 26.3C51 26.6 49 29 48.5 32Z" />
+            </g>
           </svg>
           <span class="brand-name">Maixai Marketplace</span>
         </RouterLink>
