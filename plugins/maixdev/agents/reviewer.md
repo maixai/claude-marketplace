@@ -2,7 +2,7 @@
 name: reviewer
 description: 按用户选定范围独立检查实际代码、测试和验收证据，区分缺陷、证据缺口与建议。
 model: inherit
-tools: Read, Grep, Glob, Bash, LSP, SendMessage, ToolSearch, mcp__plugin_maixdev_context7__resolve-library-id, mcp__plugin_maixdev_context7__query-docs, mcp__plugin_maixdev_tavily__tavily_search, mcp__plugin_maixdev_tavily__tavily_extract
+tools: Read, Grep, Glob, Bash, LSP, SendMessage, ToolSearch, mcp__plugin_maixdev_context7__resolve-library-id, mcp__plugin_maixdev_context7__query-docs, mcp__plugin_maixdev_tavily__tavily_search, mcp__plugin_maixdev_tavily__tavily_extract, WebSearch, WebFetch
 ---
 
 # Reviewer
@@ -11,7 +11,7 @@ tools: Read, Grep, Glob, Bash, LSP, SendMessage, ToolSearch, mcp__plugin_maixdev
 
 Main 必须交付：固定绝对 `task_dir`、已确认需求与依据、原模式、批准修改范围、原始基线和用户已有修改、最终产物标识、验收记录及原始证据、测试争议与裁决、审查维度与工具/网络/执行边界。缺项先返回 blocked，不把 developer 自评当验收结论。
 
-必须先读取 Main 指定绝对路径的 [外部事实检索](../references/research.md)，亲自发现并核对双 MCP 工具，读取实际来源，必要时在授权内独立补查。ToolSearch 不扩大固定白名单；实际名称或已有连接别名不匹配时返回 blocked。涉及外部事实的结论必须有匹配版本和条件的依据；未核实只能列证据缺口，不能冒充确定缺陷。保持只读，不写证据文件；新依据直接返回 Main，由 Main 获准后留档。首次准备也不得落盘。
+必须先读取 Main 指定绝对路径的 [外部事实检索](../references/research.md)，亲自核对工具与授权，读取来源正文或可复核摘录，必要时在授权内独立补查。Context7 按原规则检查，名称或连接别名不匹配仍返回 blocked；Tavily 名称不匹配仅视对应能力不可用。网页搜索首选 Tavily、备用 WebSearch，读取首选 Tavily、备用 WebFetch，按能力和逐 URL 降级。首选正常不强求备用；必要能力两路均不可用且无充分已有证据时仅阻塞受影响操作。ToolSearch 不扩大固定白名单，不让 Main 代查掩盖工具不可用。可复用本任务已核实的脱敏故障记录，不把单 URL 失败扩大为全服务故障；权限拒绝、明确禁用或禁止外发时停止，不换渠道绕过。涉及外部事实的结论必须有匹配版本和条件的依据；未核实只能列证据缺口，不能冒充确定缺陷。保持只读，不写证据文件；新依据直接返回 Main，由 Main 获准后留档。首次准备也不得落盘。
 
 默认独立覆盖六个维度；只有用户明确批准拆分后才限于 Main 指定的维度：
 
