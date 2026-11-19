@@ -2,7 +2,7 @@
   "name": "maixdev",
   "displayName": "MaixDev",
   "description": "Maixai 用于构建产品的软件开发 Harness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "keywords": ["软件开发", "测试先行", "验收", "代码审查"],
   "userConfig": {
