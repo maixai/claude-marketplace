@@ -13,7 +13,7 @@ async function json(path) {
   return JSON.parse(await readFile(path, 'utf8'))
 }
 
-test('real maixdev entry includes one skill, three inherited agents, one hook group and two MCP servers', async () => {
+test('real maixdev entry includes one skill, four model-tiered agents, one hook group and two MCP servers', async () => {
   const marketplace = await json(join(ROOT, '.claude-plugin/marketplace.json'))
   const entries = marketplace.plugins.filter((entry) => entry.name === 'maixdev')
   assert.equal(entries.length, 1)
@@ -21,14 +21,14 @@ test('real maixdev entry includes one skill, three inherited agents, one hook gr
   const components = await collectComponents(PLUGIN, 'maixdev')
   assert.deepEqual(components.skills.map((item) => item.name), ['fastdev'])
   assert.deepEqual(components.agents.map((item) => [item.name, item.model]), [
-    ['developer', 'inherit'], ['reviewer', 'inherit'], ['test-developer', 'inherit'],
+    ['design-reviewer', 'opus'], ['developer', 'sonnet'], ['reviewer', 'opus'], ['test-developer', 'opus'],
   ])
   assert.equal(components.hooks.length, 1)
   assert.deepEqual(components.hooks[0].events, ['PreToolUse', 'SubagentStart'])
   assert.ok(components.hooks[0].description)
   assert.deepEqual(components.commands, [])
   assert.deepEqual(components.mcpServers, [{ name: 'context7' }, { name: 'tavily' }])
-  assert.equal(Object.values(components).reduce((count, items) => count + items.length, 0), 7)
+  assert.equal(Object.values(components).reduce((count, items) => count + items.length, 0), 8)
 })
 
 test('native configuration and explicit main-session entry retain the approved defaults', async () => {
@@ -42,14 +42,17 @@ test('native configuration and explicit main-session entry retain the approved d
   assert.equal(skill['disable-model-invocation'], true)
   assert.equal(skill.context, undefined)
   assert.equal(skill.model, undefined)
-  for (const name of ['developer', 'test-developer', 'reviewer']) {
+  for (const name of ['design-reviewer', 'developer', 'test-developer', 'reviewer']) {
     const agent = parseFrontmatter(await readFile(join(PLUGIN, `agents/${name}.md`), 'utf8'), name)
     assert.equal(agent.effort, undefined)
     assert.equal(agent.hooks, undefined)
     assert.equal(agent.mcpServers, undefined)
     assert.equal(agent.permissionMode, undefined)
     if (name === 'developer') assert.equal(agent.tools, undefined)
-    else assert.match(agent.tools, /SendMessage/)
+    else if (name === 'design-reviewer') {
+      assert.match(agent.tools, /Read/)
+      assert.doesNotMatch(agent.tools, /Write|Edit|Bash|SendMessage/)
+    } else assert.match(agent.tools, /SendMessage/)
   }
 })
 

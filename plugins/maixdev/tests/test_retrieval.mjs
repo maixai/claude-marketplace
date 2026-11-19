@@ -18,11 +18,12 @@ const RETRIEVAL_TOOLS = [
   'WebSearch',
   'WebFetch',
 ]
-const ENTRIES = ['skills/fastdev/SKILL.md', 'agents/developer.md', 'agents/test-developer.md', 'agents/reviewer.md']
+const ENTRIES = ['skills/fastdev/SKILL.md', 'agents/design-reviewer.md', 'agents/developer.md', 'agents/test-developer.md', 'agents/reviewer.md']
 const SERVERS = [
   ['context7', 'https://mcp.context7.com/mcp'],
   ['tavily', 'https://mcp.tavily.com/mcp/'],
 ]
+const ROLE_MODELS = { 'design-reviewer': 'opus', developer: 'sonnet', 'test-developer': 'opus', reviewer: 'opus' }
 
 async function text(path) {
   return readFile(join(PLUGIN, path), 'utf8')
@@ -73,18 +74,24 @@ test('structure: HTTP servers reference sensitive configuration only in Authoriz
 })
 
 test('structure: restricted roles add exactly discovery, four MCP tools and two native fallbacks', async () => {
-  for (const name of ['test-developer', 'reviewer']) {
+  const originalByRole = {
+    'test-developer': ['Read', 'Grep', 'Glob', 'Edit', 'Write', 'Bash', 'LSP', 'SendMessage'],
+    reviewer: ['Read', 'Grep', 'Glob', 'Bash', 'LSP', 'SendMessage'],
+    'design-reviewer': ['Read', 'Grep', 'Glob', 'LSP'],
+  }
+  for (const name of ['design-reviewer', 'test-developer', 'reviewer']) {
     const agent = parseFrontmatter(await text(`agents/${name}.md`), name)
     const tools = agent.tools.split(',').map((tool) => tool.trim())
-    const original = name === 'test-developer'
-      ? ['Read', 'Grep', 'Glob', 'Edit', 'Write', 'Bash', 'LSP', 'SendMessage']
-      : ['Read', 'Grep', 'Glob', 'Bash', 'LSP', 'SendMessage']
+    const original = originalByRole[name]
     assert.deepEqual(tools, [...original, ...RETRIEVAL_TOOLS])
     assert.ok(tools.every((tool) => !tool.includes('*')))
     assert.equal(agent.mcpServers, undefined)
     assert.equal(agent.permissionMode, undefined)
-    if (name === 'reviewer') {
+    if (name === 'reviewer' || name === 'design-reviewer') {
       assert.ok(!tools.includes('Write') && !tools.includes('Edit'))
+    }
+    if (name === 'design-reviewer') {
+      assert.ok(!tools.includes('Bash') && !tools.includes('SendMessage'))
     }
   }
   const developer = parseFrontmatter(await text('agents/developer.md'), 'developer')
@@ -95,13 +102,13 @@ test('structure: restricted roles add exactly discovery, four MCP tools and two 
   assert.equal(skill.model, undefined)
   for (const entry of ENTRIES.slice(1)) {
     const agent = parseFrontmatter(await text(entry), entry)
-    assert.equal(agent.model, 'inherit')
+    assert.equal(agent.model, ROLE_MODELS[agent.name], entry)
     assert.equal(agent.effort, undefined)
     assert.equal(agent.hooks, undefined)
   }
 })
 
-test('structure: all four entries require the shared reference and independent evidence access', async () => {
+test('structure: all five entries require the shared reference and independent evidence access', async () => {
   for (const entry of ENTRIES) {
     const source = await text(entry)
     assert.match(source, /必须先读取[^\n]*references\/research\.md/, entry)
@@ -233,7 +240,7 @@ test('structure: host scenarios remain explicitly unexecuted rather than static 
   const rows = verification.split('\n').filter((line) => /^\| R\d+ /.test(line))
   assert.equal(rows.length, 14)
   assert.ok(rows.every((line) => line.endsWith('| 未执行 |')))
-  for (const phrase of ['四角色实际能力', '原生敏感配置', '重复连接/别名', '查证先于行动', '未收录与服务失败', '权限拒绝', '版本不符、摘要不足与冲突', '证据复用', '写入归属与暂停', '隐私与不可信资料', '按能力与逐 URL 路由', '首选与备用准备闸门', '空结果与有损提取', '本任务故障记录复用']) {
+  for (const phrase of ['五角色实际能力', '原生敏感配置', '重复连接/别名', '查证先于行动', '未收录与服务失败', '权限拒绝', '版本不符、摘要不足与冲突', '证据复用', '写入归属与暂停', '隐私与不可信资料', '按能力与逐 URL 路由', '首选与备用准备闸门', '空结果与有损提取', '本任务故障记录复用']) {
     assert.ok(rows.some((line) => line.includes(phrase)), `Missing host scenario: ${phrase}`)
   }
   assert.match(verification, /不能证明 Agent 会遵守规则、凭证已替换或 MCP 已连接/)
@@ -246,7 +253,7 @@ test('generated catalog: real plugin exposes only configuration definitions and 
   assert.ok(plugin, 'Run the real collector before checking the generated catalog')
   const manifest = await json('.claude-plugin/plugin.json')
   assert.deepEqual(plugin.components.mcpServers, [{ name: 'context7' }, { name: 'tavily' }])
-  assert.equal(Object.values(plugin.components).reduce((count, items) => count + items.length, 0), 7)
+  assert.equal(Object.values(plugin.components).reduce((count, items) => count + items.length, 0), 8)
   for (const [name] of SERVERS) {
     assert.deepEqual(plugin.manifest.userConfig[`${name}_api_key`], manifest.userConfig[`${name}_api_key`])
   }
